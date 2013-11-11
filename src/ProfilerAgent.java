@@ -2,9 +2,20 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.lang.acl.ACLMessage;
 
 
+/**
+ * Behaviours: 
+ *		StartTourBehaviour extends Ticker/Cyclic
+ *		FetchTourInformationBehaviour - SequentialBehaviour?
+ *					AskForInterestingItems - OneShot
+ *					ReceiveInterestingItems - MsgReceiver
+ *					AskForItemInformation - OneShot
+ *					ReceiveItemInformation - MsgReceiver
+ *		
+ */
 public class ProfilerAgent extends Agent {
 	@Override
 	protected void setup() {
@@ -40,4 +51,5 @@ public class ProfilerAgent extends Agent {
 				block();
 		}	
 	}
+
 }

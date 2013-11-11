@@ -7,6 +7,7 @@ public class MyAgent extends Agent {
 
 		System.out.println("Hello, this line was edited by Andreas.......");
 		addBehaviour(new PrintStuffBehaviour());
+		addBehaviour(new PrintMoreStuffBehaviour());
 	}
 	
 	private class PrintStuffBehaviour extends CyclicBehaviour {
@@ -14,6 +15,14 @@ public class MyAgent extends Agent {
 		@Override
 		public void action() {
 			System.out.println("Some cyclic behaviour...");
+		}
+	}
+	
+	private class PrintMoreStuffBehaviour extends CyclicBehaviour {
+
+		@Override
+		public void action() {
+			System.out.println("Some OTHER cyclic behiour.");
 		}
 	}
 }
