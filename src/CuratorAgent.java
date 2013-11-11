@@ -3,6 +3,11 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+/*
+ * RecieveItemInfoRequestBehaviour extends CyclicBehaviour
+ * 
+ */
+
 public class CuratorAgent extends Agent {
 	@Override
 	protected void setup() {
