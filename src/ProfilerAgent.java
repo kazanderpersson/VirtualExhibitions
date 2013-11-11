@@ -1,6 +1,8 @@
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Scanner;
 
 import jade.core.AID;
 import jade.core.Agent;
@@ -35,6 +37,23 @@ public class ProfilerAgent extends Agent {
 	
 	@Override
 	protected void setup() {
+		
+		ArrayList<Profile> profiles = new ArrayList<Profile>();
+		ArrayList<Artifact> artifacts = new ArrayList<Artifact>();
+		try{ 
+		Scanner sc = new Scanner(new File("Profiles.txt")); 
+		sc.nextLine();
+		sc.nextLine();
+		
+		
+		
+		sc = new Scanner(new File("Artifacts.txt")); 
+		}
+		catch(IOException e){}
+		
+
+		
+		
 		SequentialBehaviour seq = new SequentialBehaviour(this);
 		seq.addSubBehaviour(new AskForInterestingItems());
 		seq.addSubBehaviour(new ReceiveInterestingItemsBehaviour(this, 10000));
