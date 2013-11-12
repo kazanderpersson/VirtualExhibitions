@@ -9,6 +9,7 @@ import jade.core.Agent;
 import jade.core.behaviours.DataStore;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -17,13 +18,13 @@ import jade.proto.states.MsgReceiver;
 
 /**
  * Behaviours: 
- *		StartTourBehaviour extends Ticker/Cyclic
- *		FetchTourInformationBehaviour - SequentialBehaviour?
+ *		StartTourBehaviour extends Ticker
+ *			FetchTourInformationBehaviour - SequentialBehaviour?
  *					AskForInterestingItems - OneShot
  *					ReceiveInterestingItems - MsgReceiver
  *					AskForItemInformation - OneShot
  *					ReceiveItemInformation - MsgReceiver
- *		
+ *					ShowTourToUser.... - OneShot
  */
 public class ProfilerAgent extends Agent {
 	
@@ -34,40 +35,28 @@ public class ProfilerAgent extends Agent {
 	
 	private final String TOUR_GUIDE_NAME = "bob";
 	private final String CURATOR_NAME = "alice";
+	private final int TOUR_FREQUENCY = 10000;
 	
 	@Override
 	protected void setup() {
-		
-/*		ArrayList<Profile> profiles = new ArrayList<Profile>();
-		ArrayList<Artifact> artifacts = new ArrayList<Artifact>();
-		try { 
-		String[] input = new String[5];
-		Scanner sc = new Scanner(new File("Profiles.txt")); 
-		sc.nextLine();
-		sc.nextLine();
-		
-		while (sc.hasNextLine()) {
-			
-			for (int i=0; i<input.length; i++)
-				input[i] = sc.nextLine();
-			
-			profiles
-		}
-		sc = new Scanner(new File("Artifacts.txt"));
-		sc.nextLine();
-		sc.nextLine();
-		}
-		catch(IOException e){}*/
-		
+		addBehaviour(new StartTourBehaviour(this, TOUR_FREQUENCY));
+	}
+	
+	private class StartTourBehaviour extends TickerBehaviour {
 
-		
-		
-		SequentialBehaviour seq = new SequentialBehaviour(this);
-		seq.addSubBehaviour(new AskForInterestingItems());
-		seq.addSubBehaviour(new ReceiveInterestingItemsBehaviour(this, 10000));
-		seq.addSubBehaviour(new AskForItemInformation());
-		seq.addSubBehaviour(new ReceiveTourContentBehaviour(this, 10000));
-		addBehaviour(seq);
+		public StartTourBehaviour(Agent a, long period) {
+			super(a, period);
+		}
+
+		@Override
+		protected void onTick() {
+			SequentialBehaviour seq = new SequentialBehaviour(myAgent);
+			seq.addSubBehaviour(new AskForInterestingItems());
+			seq.addSubBehaviour(new ReceiveInterestingItemsBehaviour(myAgent, 10000));
+			seq.addSubBehaviour(new AskForItemInformation());
+			seq.addSubBehaviour(new ReceiveTourContentBehaviour(myAgent, 10000));
+			addBehaviour(seq);			
+		}
 	}
 	
 	private class AskForInterestingItems extends OneShotBehaviour {
@@ -149,6 +138,29 @@ public class ProfilerAgent extends Agent {
 					myAgent.doSuspend();
 				}
 			}
+		}
+	}
+	
+	private class EmulateTour extends OneShotBehaviour {
+		@Override
+		public void action() {
+			System.out.println("Welcome to the Virtual Exhibition!");
+			for(Artifact art : tourArtifacts) {
+				System.out.println("_______________________________________");
+				System.out.println("Name: " + art.getName());
+				System.out.println("Creator: " + art.getCreator());
+				System.out.println("Date of creation: " + art.getCreationDate());
+				System.out.println("Type: " + art.getType());
+				System.out.println("Genre: " + art.getGenre());
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			System.out.println("_______________________________________");
+			System.out.println("That was the end of this exhibition. A new one will start shortly.");
+			
 		}
 	}
 }
