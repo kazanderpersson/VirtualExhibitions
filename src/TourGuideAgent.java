@@ -27,15 +27,33 @@ public class TourGuideAgent extends Agent{
 	
 	private ArrayList<Integer> itemIDs;
 	private Profile profile;
+	private AID profilerAgent;
 	
-	public static final String TOUR_GUIDE_NAME = "bob";
+	public static final String TOUR_GUIDE_NAME = "tourguide";
 	private final int TOUR_SIZE = 5;
 	
 	private String conversationID;
 	
+	private static final String STATE_RECEIVE_FROM_PROFILER = "A";
+	private static final String STATE_SEND_TO_CURATOR = "B";
+	private static final String STATE_RECEIVE_FROM_CURATOR = "C";
+	private static final String STATE_RESPOND_TO_PROFILER = "D";
+	
 	@Override
 	protected void setup() {
-		addBehaviour(new HandleTourRequestBehaviour());
+//		addBehaviour(new HandleTourRequestBehaviour());
+		
+		FSMBehaviour fsm = new FSMBehaviour(this);
+		fsm.registerFirstState(new ReceiveTourRequest(this, MsgReceiver.INFINITE), STATE_RECEIVE_FROM_PROFILER);
+		fsm.registerState(new SendArtifactRequest(), STATE_SEND_TO_CURATOR);
+		fsm.registerState(new ReceiveArtifactIDs(this, MsgReceiver.INFINITE), STATE_RECEIVE_FROM_CURATOR);
+		fsm.registerState(new SendItemIDs(), STATE_RESPOND_TO_PROFILER);
+		
+		fsm.registerDefaultTransition(STATE_RECEIVE_FROM_PROFILER, STATE_SEND_TO_CURATOR);
+		fsm.registerDefaultTransition(STATE_SEND_TO_CURATOR, STATE_RECEIVE_FROM_CURATOR);
+		fsm.registerDefaultTransition(STATE_RECEIVE_FROM_CURATOR, STATE_RESPOND_TO_PROFILER);
+		fsm.registerDefaultTransition(STATE_RESPOND_TO_PROFILER, STATE_RECEIVE_FROM_PROFILER);
+		addBehaviour(fsm);
 	}
 	
 	private class HandleTourRequestBehaviour extends CyclicBehaviour {
@@ -103,8 +121,12 @@ public class TourGuideAgent extends Agent{
 		@Override
 		public void handleMessage(ACLMessage msg) {
 			try {
+				System.out.println("Waiting for Tour Request from ProfilerAgent.");
+				//Receive message from ProfilerAgent
+				profilerAgent = msg.getSender();
 				conversationID = msg.getConversationId();
 				profile = (Profile) msg.getContentObject();
+				System.out.println(getName() + ": Received a profile with name: " + profile.getName());
 			} catch (UnreadableException e) {
 				System.err.println(myAgent.getAID().getName() + ": Could not read profile. Terminating...");
 				myAgent.doDelete();
@@ -116,30 +138,35 @@ public class TourGuideAgent extends Agent{
 	private class SendArtifactRequest extends OneShotBehaviour {
 		@Override
 		public void action() {
-			AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
-			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			msg.addReceiver(curator);
-			msg.setOntology("request-ids");
-			msg.setConversationId(conversationID);
 			try {
-				msg.setContentObject(profile.getInterests());	//TODO change to get better results?
+				//Send request to CuratorAgent
+				AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+				msg.addReceiver(curator);
+				msg.setOntology("request-ids");
+				msg.setConversationId(conversationID);
+				msg.setContentObject(profile.getInterests());
+				send(msg);
+				System.out.println(getName() + ": Sent request to Curator. Number of interests= " + profile.getInterests().size());
 			} catch (IOException e) {
 				System.err.println(myAgent.getAID().getName() + ": Could not serialize interest list. Terminating...");
 				myAgent.doDelete();
 			}
-			send(msg);
 		}
 	}
 	
 	private class ReceiveArtifactIDs extends MsgReceiver {
 		public ReceiveArtifactIDs(Agent a,long deadline) {
-			super(a, MessageTemplate.MatchOntology("get-artifact-ids").MatchConversationId(conversationID), deadline, new DataStore(), "key");
+			super(a, MessageTemplate.MatchOntology("get-artifact-ids"), deadline, new DataStore(), "key");
 		}
 		
 		@Override
 		public void handleMessage(ACLMessage msg) {
 			try {
+				//Receive response from CuratorAgent
+				System.out.println(getName() + ": Waiting for curator....");
 				itemIDs = (ArrayList<Integer>) msg.getContentObject();
+				System.out.println(getName() + ": Received response from Curator, number of IDs = " + itemIDs.size());
 				
 			} catch (UnreadableException e) {
 				System.err.println(myAgent.getAID().getName() + ": Could not read item IDs. Terminating...");
@@ -151,26 +178,29 @@ public class TourGuideAgent extends Agent{
 	private class SendItemIDs extends OneShotBehaviour {
 		@Override
 		public void action() {
-			ArrayList<Integer> idsToSend = new ArrayList<>();
-			for(Integer id : itemIDs) {
-				boolean idIsVisited = profile.getVisitedItemsID().contains(id);
-				boolean tourIsFull = idsToSend.size() > TOUR_SIZE;
-				boolean idAlreadyInTour = idsToSend.contains(id);
-				if(!idIsVisited && !tourIsFull && !idAlreadyInTour)
-					idsToSend.add(id);
-			}
-			
-			AID profiler = new AID(ProfilerAgent.PROFILER_NAME, AID.ISLOCALNAME);
-			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			msg.addReceiver(profiler);
-			msg.setOntology("tour-ids");
 			try {
-				msg.setContentObject(idsToSend);
+				//Filter the results and make a list of IDs to send to Profiler.
+				ArrayList<Integer> idsToSend = new ArrayList<>();
+				for(Integer id : itemIDs) {
+					boolean idIsVisited = profile.getVisitedItemsID().contains(id);
+					boolean tourIsFull = idsToSend.size() > TOUR_SIZE;
+					boolean idAlreadyInTour = idsToSend.contains(id);
+					
+					if(!idIsVisited && !tourIsFull && !idAlreadyInTour)
+						idsToSend.add(id);
+				}
+				
+				//Send the IDs to the ProfilerAgent
+	//			AID profiler = new AID(ProfilerAgent.PROFILER_NAME, AID.ISLOCALNAME);
+				ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
+				reply.addReceiver(profilerAgent);
+				reply.setOntology("tour-ids");
+				reply.setContentObject(idsToSend);
+				send(reply);
+				System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
 			} catch (IOException e) {
-				System.err.println(myAgent.getAID().getName() + ": Could not serialize the tour IDs. Terminating...");
-				myAgent.doDelete();
+				e.printStackTrace();
 			}
-			send(msg);
 		}
 	}
 }
