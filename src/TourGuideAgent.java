@@ -56,62 +56,62 @@ public class TourGuideAgent extends Agent{
 		addBehaviour(fsm);
 	}
 	
-	private class HandleTourRequestBehaviour extends CyclicBehaviour {
-
-		@Override
-		public void action() {
-			try {
-				System.out.println("Waiting for Tour Request from ProfilerAgent.");
-				//Receive message from ProfilerAgent
-				ACLMessage profilerRequest = blockingReceive(MessageTemplate.MatchOntology("get-tour-guide"));
-				AID profiler = profilerRequest.getSender();
-				conversationID = profilerRequest.getConversationId();
-				profile = (Profile) profilerRequest.getContentObject();
-				
-				
-				//Send request to CuratorAgent
-				AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
-				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-				msg.addReceiver(curator);
-				msg.setOntology("request-ids");
-				msg.setConversationId(conversationID);
-				msg.setContentObject(profile.getInterests());
-				send(msg);
-				
-				
-				//Receive response from CuratorAgent
-				ACLMessage curatorResponse = blockingReceive(MessageTemplate.MatchOntology("get-artifact-ids").MatchConversationId(conversationID));
-				itemIDs = (ArrayList<Integer>) curatorResponse.getContentObject();
-				
-				
-				//Send the IDs to the ProfilerAgent
-				ArrayList<Integer> idsToSend = new ArrayList<>();
-				for(Integer id : itemIDs) {
-					boolean idIsVisited = profile.getVisitedItemsID().contains(id);
-					boolean tourIsFull = idsToSend.size() > TOUR_SIZE;
-					boolean idAlreadyInTour = idsToSend.contains(id);
-					
-					if(!idIsVisited && !tourIsFull && !idAlreadyInTour)
-						idsToSend.add(id);
-				}
-				
-				//Send the IDs to the ProfilerAgent
-	//			AID profiler = new AID(ProfilerAgent.PROFILER_NAME, AID.ISLOCALNAME);
-				ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
-				reply.addReceiver(profiler);
-				reply.setOntology("tour-ids");
-				reply.setContentObject(idsToSend);
-				send(reply);
-				System.out.println("Request was handled and a response have been sent to the Profiler.");
-			} catch (UnreadableException e) {
-				e.printStackTrace();
-				System.err.println(myAgent.getAID().getName() + ": Could not decode message. Aborting.");
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.err.println(myAgent.getAID().getName() + ": Could not serialize some object... Aborting.");
-			}
-		}
-	}
+//	private class HandleTourRequestBehaviour extends CyclicBehaviour {
+//
+//		@Override
+//		public void action() {
+//			try {
+//				System.out.println("Waiting for Tour Request from ProfilerAgent.");
+//				//Receive message from ProfilerAgent
+//				ACLMessage profilerRequest = blockingReceive(MessageTemplate.MatchOntology("get-tour-guide"));
+//				AID profiler = profilerRequest.getSender();
+//				conversationID = profilerRequest.getConversationId();
+//				profile = (Profile) profilerRequest.getContentObject();
+//				
+//				
+//				//Send request to CuratorAgent
+//				AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+//				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+//				msg.addReceiver(curator);
+//				msg.setOntology("request-ids");
+//				msg.setConversationId(conversationID);
+//				msg.setContentObject(profile.getInterests());
+//				send(msg);
+//				
+//				
+//				//Receive response from CuratorAgent
+//				ACLMessage curatorResponse = blockingReceive(MessageTemplate.MatchOntology("get-artifact-ids").MatchConversationId(conversationID));
+//				itemIDs = (ArrayList<Integer>) curatorResponse.getContentObject();
+//				
+//				
+//				//Send the IDs to the ProfilerAgent
+//				ArrayList<Integer> idsToSend = new ArrayList<>();
+//				for(Integer id : itemIDs) {
+//					boolean idIsVisited = profile.getVisitedItemsID().contains(id);
+//					boolean tourIsFull = idsToSend.size() > TOUR_SIZE;
+//					boolean idAlreadyInTour = idsToSend.contains(id);
+//					
+//					if(!idIsVisited && !tourIsFull && !idAlreadyInTour)
+//						idsToSend.add(id);
+//				}
+//				
+//				//Send the IDs to the ProfilerAgent
+//	//			AID profiler = new AID(ProfilerAgent.PROFILER_NAME, AID.ISLOCALNAME);
+//				ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
+//				reply.addReceiver(profiler);
+//				reply.setOntology("tour-ids");
+//				reply.setContentObject(idsToSend);
+//				send(reply);
+//				System.out.println("Request was handled and a response have been sent to the Profiler.");
+//			} catch (UnreadableException e) {
+//				e.printStackTrace();
+//				System.err.println(myAgent.getAID().getName() + ": Could not decode message. Aborting.");
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//				System.err.println(myAgent.getAID().getName() + ": Could not serialize some object... Aborting.");
+//			}
+//		}
+//	}
 	
 	private class ReceiveTourRequest extends MsgReceiver {
 		public ReceiveTourRequest(Agent a,long deadline) {
@@ -183,10 +183,10 @@ public class TourGuideAgent extends Agent{
 				ArrayList<Integer> idsToSend = new ArrayList<>();
 				for(Integer id : itemIDs) {
 					boolean idIsVisited = profile.getVisitedItemsID().contains(id);
-					boolean tourIsFull = idsToSend.size() > TOUR_SIZE;
+					boolean tourIsFull = idsToSend.size() >= TOUR_SIZE;
 					boolean idAlreadyInTour = idsToSend.contains(id);
 					
-					if(!idIsVisited && !tourIsFull && !idAlreadyInTour)
+					if(!tourIsFull && !idIsVisited && !idAlreadyInTour)
 						idsToSend.add(id);
 				}
 				
