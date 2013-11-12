@@ -4,9 +4,6 @@ import java.util.Calendar;
 import java.util.ArrayList;
 
 public class Profile implements Serializable{
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -9013238777426582211L;
 	
 	private int id;

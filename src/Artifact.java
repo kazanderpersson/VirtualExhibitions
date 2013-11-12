@@ -1,4 +1,5 @@
 import jade.util.leap.Serializable;
+import java.util.ArrayList;
 
 
 public class Artifact implements Serializable {
@@ -9,15 +10,17 @@ public class Artifact implements Serializable {
 	private String creator;
 	private String creationDate;
 	private String type;
-	private String genre;
+	private String description;
+	private ArrayList<String> genres;
 	
-	public Artifact(int id, String name, String creator, String creationDate, String type, String genre) {
+	public Artifact(int id, String name, String creator, String creationDate, String type, String description, ArrayList<String> genres) {
 		this.id = id;
 		this.name = name;
 		this.creator = creator;
 		this.creationDate = creationDate;
 		this.type = type;
-		this.genre = genre;
+		this.description = description;
+		this.genres = genres;
 	}
 
 	public int getId() {
@@ -39,9 +42,13 @@ public class Artifact implements Serializable {
 	public String getType() {
 		return type;
 	}
+	
+	public String getDescription() {
+		return description;
+	}
 
-	public String getGenre() {
-		return genre;
+	public ArrayList<String> getGenre() {
+		return genres;
 	}
 	
 	
