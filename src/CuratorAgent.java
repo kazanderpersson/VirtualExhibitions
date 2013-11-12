@@ -9,6 +9,9 @@ import jade.lang.acl.MessageTemplate;
  */
 
 public class CuratorAgent extends Agent {
+	
+	public static final String CURATOR_NAME = "alice";
+	
 	@Override
 	protected void setup() {
 

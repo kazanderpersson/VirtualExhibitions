@@ -33,8 +33,9 @@ public class ProfilerAgent extends Agent {
 	private ArrayList<Integer> itemIDs;
 	private ArrayList<Artifact> tourArtifacts;
 	
-	private final String TOUR_GUIDE_NAME = "bob";
-	private final String CURATOR_NAME = "alice";
+//	private final String TOUR_GUIDE_NAME = "bob";
+//	private final String CURATOR_NAME = "alice";
+	public static final String PROFILER_NAME = "profiler";
 	private final int TOUR_FREQUENCY = 10000;
 	
 	@Override
@@ -63,7 +64,7 @@ public class ProfilerAgent extends Agent {
 		@Override
 		public void action() {
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			AID receiver = new AID(TOUR_GUIDE_NAME, AID.ISLOCALNAME);
+			AID receiver = new AID(TourGuideAgent.TOUR_GUIDE_NAME, AID.ISLOCALNAME);	//TODO remove name later..
 			msg.addReceiver(receiver);
 			try {
 				msg.setContentObject(profile);
@@ -104,7 +105,7 @@ public class ProfilerAgent extends Agent {
 		@Override
 		public void action() {
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			AID receiver = new AID(CURATOR_NAME, AID.ISLOCALNAME);
+			AID receiver = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);		//TODO remove name later...
 			msg.addReceiver(receiver);
 			try {
 				msg.setContentObject(itemIDs);
@@ -135,7 +136,7 @@ public class ProfilerAgent extends Agent {
 					System.out.println(myAgent.getAID().getName() + ": Received " + tourArtifacts.size() + " items from curator.");
 				} catch (UnreadableException e) {
 					System.err.println("Received artifacts, but can't read them! Aborting...");
-					myAgent.doSuspend();
+					myAgent.doDelete();
 				}
 			}
 		}
