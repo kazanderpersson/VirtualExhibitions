@@ -12,7 +12,7 @@ public class Profile implements Serializable{
 	private int yearBorned;
 	private String occupation;
 	private ArrayList<String> interests;
-	private ArrayList<Integer> visitedItems;
+	private ArrayList<Integer> visitedItemsID;
 	
 	public Profile(int id, String name, String gender, int yearBorned, String occupation, ArrayList<String> interests) {
 		this.id = id;
@@ -21,7 +21,7 @@ public class Profile implements Serializable{
 		this.yearBorned = yearBorned;
 		this.occupation = occupation;
 		this.interests = interests;
-		visitedItems = new ArrayList<Integer>();
+		visitedItemsID = new ArrayList<Integer>();
 	}
 
 	public int getId() {
@@ -48,12 +48,12 @@ public class Profile implements Serializable{
 		return interests;
 	}
 	
-	public ArrayList<Integer> getVisitedItem() {
-		return visitedItems;
+	public ArrayList<Integer> getVisitedItemsID() {
+		return visitedItemsID;
 	}
 	
-	public void setVisitedItem(int item) {
-		if (!visitedItems.contains(item))
-			visitedItems.add(item);
+	public void setVisitedItem(int itemID) {
+		if (!visitedItemsID.contains(itemID))
+			visitedItemsID.add(itemID);
 	}
 }

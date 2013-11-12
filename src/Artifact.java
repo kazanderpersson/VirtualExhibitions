@@ -50,6 +50,4 @@ public class Artifact implements Serializable {
 	public ArrayList<String> getGenre() {
 		return genres;
 	}
-	
-	
 }

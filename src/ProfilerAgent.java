@@ -2,7 +2,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Scanner;
 
 import jade.core.AID;
@@ -40,23 +39,20 @@ public class ProfilerAgent extends Agent {
 	private final int TOUR_FREQUENCY = 10000;
 	
 	@Override
-	protected void setup() {
-		
-		try {
+	protected void setup() {	
+		try { //randomly create (from database file) and assign a profile for agent
 			int counter = 0;
 			Scanner count = new Scanner(new File("Profiles.txt")); 
-			while (count.hasNextLine())
-			{
+			while (count.hasNextLine()) {
 				count.nextLine();
 				counter++;
 			}
 			count.close();
-			counter -= 2; //remove first rows
 			
+			counter -= 2; //remove first rows	
 			int numberOfProfiles = (int)(counter/6);
-			int pickRandomProfile = (int)(Math.random()*numberOfProfiles);
-			int startLineOfProfile = pickRandomProfile*6;
-			
+			int pickRandomProfile = (int)(Math.random()*numberOfProfiles); 
+			int startLineOfProfile = pickRandomProfile*6;	
 			Scanner sc = new Scanner(new File("Profiles.txt"));
 			sc.nextLine();
 			sc.nextLine();
@@ -65,20 +61,14 @@ public class ProfilerAgent extends Agent {
 			
 			sc.nextLine();
 			String[] input = new String[5];
-			for (int i=0; i<input.length; i++) {
+			for (int i=0; i<input.length; i++) { //read in the chosen profile from file
 				input[i] = sc.nextLine();
-				System.out.println(input[i]);
+				System.out.println(input[i]); //(print which profile that was created)
 			}
 			sc.close();
-			
-			ArrayList<String> genders = new ArrayList<String>(Arrays.asList(input[4].split(", ")));
-			
-			profile = new Profile(pickRandomProfile+1, input[0], input[1], Integer.parseInt(input[2]), input[3], genders);
-			
+			profile = new Profile(pickRandomProfile+1, input[0], input[1], Integer.parseInt(input[2]), input[3], new ArrayList<String>(Arrays.asList(input[4].split(", "))));
 		} catch (IOException e) {}
-		
-		
-		
+			
 		addBehaviour(new StartTourBehaviour(this, TOUR_FREQUENCY));
 	}
 	

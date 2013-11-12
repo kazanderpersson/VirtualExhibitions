@@ -69,7 +69,7 @@ public class TourGuideAgent extends Agent{
 				//Send the IDs to the ProfilerAgent
 				ArrayList<Integer> idsToSend = new ArrayList<>();
 				for(Integer id : itemIDs) {
-					boolean idIsVisited = profile.getVisitedItem().contains(id);
+					boolean idIsVisited = profile.getVisitedItemsID().contains(id);
 					boolean tourIsFull = idsToSend.size() > TOUR_SIZE;
 					boolean idAlreadyInTour = idsToSend.contains(id);
 					
@@ -153,7 +153,7 @@ public class TourGuideAgent extends Agent{
 		public void action() {
 			ArrayList<Integer> idsToSend = new ArrayList<>();
 			for(Integer id : itemIDs) {
-				boolean idIsVisited = profile.getVisitedItem().contains(id);
+				boolean idIsVisited = profile.getVisitedItemsID().contains(id);
 				boolean tourIsFull = idsToSend.size() > TOUR_SIZE;
 				boolean idAlreadyInTour = idsToSend.contains(id);
 				if(!idIsVisited && !tourIsFull && !idAlreadyInTour)
