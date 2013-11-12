@@ -38,18 +38,26 @@ public class ProfilerAgent extends Agent {
 	@Override
 	protected void setup() {
 		
-		ArrayList<Profile> profiles = new ArrayList<Profile>();
+/*		ArrayList<Profile> profiles = new ArrayList<Profile>();
 		ArrayList<Artifact> artifacts = new ArrayList<Artifact>();
-		try{ 
+		try { 
+		String[] input = new String[5];
 		Scanner sc = new Scanner(new File("Profiles.txt")); 
 		sc.nextLine();
 		sc.nextLine();
 		
-		
-		
-		sc = new Scanner(new File("Artifacts.txt")); 
+		while (sc.hasNextLine()) {
+			
+			for (int i=0; i<input.length; i++)
+				input[i] = sc.nextLine();
+			
+			profiles
 		}
-		catch(IOException e){}
+		sc = new Scanner(new File("Artifacts.txt"));
+		sc.nextLine();
+		sc.nextLine();
+		}
+		catch(IOException e){}*/
 		
 
 		

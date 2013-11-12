@@ -11,16 +11,16 @@ public class Profile implements Serializable{
 	
 	private int id;
 	private String name;
-	private boolean genderIsMan;
+	private String gender;
 	private int yearBorned;
 	private String occupation;
 	private ArrayList<String> interests;
 	private ArrayList<Integer> visitedItems;
 	
-	public Profile(int id, String name, boolean genderIsMan, int yearBorned, String occupation, ArrayList<String> interests) {
+	public Profile(int id, String name, String gender, int yearBorned, String occupation, ArrayList<String> interests) {
 		this.id = id;
 		this.name = name;
-		this.genderIsMan = genderIsMan;
+		this.gender = gender;
 		this.yearBorned = yearBorned;
 		this.occupation = occupation;
 		this.interests = interests;
@@ -35,8 +35,8 @@ public class Profile implements Serializable{
 		return name;
 	}
 	
-	public boolean getGenderIsMan() {
-		return genderIsMan;
+	public String getGender() {
+		return gender;
 	}
 	
 	public int getAge() {
