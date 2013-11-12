@@ -1,4 +1,5 @@
 import jade.util.leap.Serializable;
+
 import java.util.ArrayList;
 
 
@@ -49,5 +50,13 @@ public class Artifact implements Serializable {
 
 	public ArrayList<String> getGenre() {
 		return genres;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof Artifact)
+			return id == ((Artifact)obj).getId();
+		else
+			return false;
 	}
 }
