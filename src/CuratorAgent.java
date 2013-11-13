@@ -83,6 +83,16 @@ public class CuratorAgent extends Agent {
 		/****************************************************************/
 	}
 	
+	@Override
+	protected void takeDown() {
+		try {
+			DFService.deregister(this);
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+		System.out.println(getName() + ": I'm going down...");
+	}
+	
 	private class HandleRequest extends CyclicBehaviour {
 		@Override
 		public void action() {
