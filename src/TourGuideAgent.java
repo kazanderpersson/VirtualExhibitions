@@ -68,13 +68,16 @@ public class TourGuideAgent extends Agent{
 		/****************************************************************/
 	}
 	
+	/**
+	 * Register this agent with the DF, and publish the given Service
+	 */
 	private void register(ServiceDescription sd) {
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		dfd.addServices(sd);
 		try {
 			DFService.register(this, dfd);
-			System.out.println(getName() + ": Successfully registered service " + sd.getName());
+			//System.out.println(getName() + ": Successfully registered service " + sd.getName());
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
@@ -148,12 +151,12 @@ public class TourGuideAgent extends Agent{
 		@Override
 		public void handleMessage(ACLMessage msg) {
 			try {
-				System.out.println("Waiting for Tour Request from ProfilerAgent.");
+				//System.out.println("Waiting for Tour Request from ProfilerAgent.");
 				//Receive message from ProfilerAgent
 				profilerAgent = msg.getSender();
 				conversationID = msg.getConversationId();
 				profile = (Profile) msg.getContentObject();
-				System.out.println(getName() + ": Received a profile with name: " + profile.getName());
+				//System.out.println(getName() + ": Received a profile with name: " + profile.getName());
 			} catch (UnreadableException e) {
 				System.err.println(myAgent.getAID().getName() + ": Could not read profile. Terminating...");
 				myAgent.doDelete();
@@ -176,7 +179,7 @@ public class TourGuideAgent extends Agent{
 				msg.setConversationId(conversationID);
 				msg.setContentObject(profile.getInterests());
 				send(msg);
-				System.out.println(getName() + ": Sent request to Curator. Number of interests= " + profile.getInterests().size());
+				//System.out.println(getName() + ": Sent request to Curator. Number of interests= " + profile.getInterests().size());
 			} catch (IOException e) {
 				System.err.println(myAgent.getAID().getName() + ": Could not serialize interest list. Terminating...");
 				myAgent.doDelete();
@@ -196,9 +199,9 @@ public class TourGuideAgent extends Agent{
 		public void handleMessage(ACLMessage msg) {
 			try {
 				//Receive response from CuratorAgent
-				System.out.println(getName() + ": Waiting for curator....");
+				//System.out.println(getName() + ": Waiting for curator....");
 				itemIDs = (ArrayList<Integer>) msg.getContentObject();
-				System.out.println(getName() + ": Received response from Curator, number of IDs = " + itemIDs.size());
+				//System.out.println(getName() + ": Received response from Curator, number of IDs = " + itemIDs.size());
 				
 			} catch (UnreadableException e) {
 				System.err.println(myAgent.getAID().getName() + ": Could not read item IDs. Terminating...");
@@ -233,7 +236,7 @@ public class TourGuideAgent extends Agent{
 				reply.setOntology("tour-ids");
 				reply.setContentObject(idsToSend);
 				send(reply);
-				System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
+				//System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

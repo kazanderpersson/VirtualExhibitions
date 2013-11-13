@@ -57,7 +57,8 @@ public class CuratorAgent extends Agent {
 		addBehaviour(new UpdateArtifacts(this, 100000));
 		addBehaviour(new HandleRequest());
 		
-		
+		/*****************************************************************/
+		/**************  Publish the two services to DF  *****************/
 		/*****************************************************************/
 		ServiceDescription artifactInformation = new ServiceDescription();
 		artifactInformation.setType("artifact-lookup");
@@ -75,7 +76,7 @@ public class CuratorAgent extends Agent {
 		dfd.addServices(artifactSearch);
 		try {
 			DFService.register(this, dfd);
-			System.out.println(getName() + ": Successfully registered services.");
+			//System.out.println(getName() + ": Successfully registered services.");
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
@@ -88,10 +89,10 @@ public class CuratorAgent extends Agent {
 			ACLMessage request = receive();
 			if(request != null) {
 				if(request.getOntology().equals("request-ids")) {
-					System.out.println(getName() + ": Received request from Tour Guide. Will handle.");
+					//System.out.println(getName() + ": Received request from Tour Guide. Will handle.");
 					handleTourGuideRequest(request);
 				} else if(request.getOntology().equals("get-item-information")) {
-					System.out.println(getName() + ": Received request from Profiler. Will handle.");
+					//System.out.println(getName() + ": Received request from Profiler. Will handle.");
 					handleProfilerRequest(request);
 				}
 			} else
@@ -103,7 +104,7 @@ public class CuratorAgent extends Agent {
 			ArrayList<String> interests;
 			try {
 				interests = (ArrayList<String>) request.getContentObject();
-				System.out.println(getName() + ": Will handle " + interests.size() + " interests. (Successfully read message)");
+				//System.out.println(getName() + ": Will handle " + interests.size() + " interests. (Successfully read message)");
 			} catch (UnreadableException e) {
 				System.out.println(myAgent.getAID().getName() + ":ERROR Couldn't get interests. Will respond with an empty list...");
 				interests = new ArrayList<>();
@@ -126,7 +127,7 @@ public class CuratorAgent extends Agent {
 				System.err.println(myAgent.getAID().getName() + ": Couldn't serialize the ID-list... Will cause problems with other agents.");
 			}
 			send(response);
-			System.out.println(myAgent.getAID().getName() + ":Response message sent to TourGuide with " + ids.size() + " IDs.");
+			//System.out.println(myAgent.getAID().getName() + ":Response message sent to TourGuide with " + ids.size() + " IDs.");
 		}
 		
 		private void handleProfilerRequest(ACLMessage request) {
@@ -134,7 +135,7 @@ public class CuratorAgent extends Agent {
 			ArrayList<Integer> requestedIDs;
 			try {
 				requestedIDs = (ArrayList<Integer>) request.getContentObject();
-				System.out.println(getName() + ": Received request from Profiler. He requested " + requestedIDs.size() + " IDs.");
+				//System.out.println(getName() + ": Received request from Profiler. He requested " + requestedIDs.size() + " IDs.");
 			} catch (UnreadableException e) {
 				System.err.println(myAgent.getAID().getName() + ": Couldn't get IDs to look up. Will respond with an empty list...");
 				requestedIDs= new ArrayList<>();
@@ -157,7 +158,7 @@ public class CuratorAgent extends Agent {
 				System.err.println(myAgent.getAID().getName() + ": Couldn't serialize the Artifact list... Will cause problems with other agents.");
 			}
 			send(response);
-			System.out.println(myAgent.getAID().getName() + ":Response message sent to Profiler with " + relatedArtifacts.size() + " artifacts.");
+			//System.out.println(myAgent.getAID().getName() + ":Response message sent to Profiler with " + relatedArtifacts.size() + " artifacts.");
 		}
 	}
 	

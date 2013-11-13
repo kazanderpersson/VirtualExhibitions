@@ -40,6 +40,11 @@ public class ProfilerAgent extends Agent {
 	
 	@Override
 	protected void setup() {	
+		initiatieProfile();
+		addBehaviour(new StartTourBehaviour(this, TOUR_FREQUENCY));
+	}
+	
+	private void initiatieProfile() {
 		try { //randomly create (from database file) and assign a profile for agent
 			int counter = 0;
 			Scanner count = new Scanner(new File("Profiles.txt")); 
@@ -68,8 +73,6 @@ public class ProfilerAgent extends Agent {
 			sc.close();
 			profile = new Profile(pickRandomProfile+1, input[0], input[1], Integer.parseInt(input[2]), input[3], new ArrayList<String>(Arrays.asList(input[4].split(", "))));
 		} catch (IOException e) {}
-			
-		addBehaviour(new StartTourBehaviour(this, TOUR_FREQUENCY));
 	}
 	
 	private class StartTourBehaviour extends TickerBehaviour {
