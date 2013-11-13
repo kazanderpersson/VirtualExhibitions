@@ -9,6 +9,10 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -50,8 +54,32 @@ public class CuratorAgent extends Agent {
 			sc.close();
 		} catch (IOException e) {}
 		
-		addBehaviour(new UpdateArtifacts(this, 10000));
+		addBehaviour(new UpdateArtifacts(this, 100000));
 		addBehaviour(new HandleRequest());
+		
+		
+		/*****************************************************************/
+		ServiceDescription artifactInformation = new ServiceDescription();
+		artifactInformation.setType("artifact-lookup");
+		artifactInformation.setName("get-artifact-info");
+		artifactInformation.addOntologies("get-item-information");
+		
+		ServiceDescription artifactSearch = new ServiceDescription();
+		artifactSearch.setType("artifact-search");
+		artifactSearch.setName("search-for-artifacts");
+		artifactSearch.addOntologies("request-ids");
+		
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		dfd.addServices(artifactInformation);
+		dfd.addServices(artifactSearch);
+		try {
+			DFService.register(this, dfd);
+			System.out.println(getName() + ": Successfully registered services.");
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+		/****************************************************************/
 	}
 	
 	private class HandleRequest extends CyclicBehaviour {

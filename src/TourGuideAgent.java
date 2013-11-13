@@ -60,21 +60,24 @@ public class TourGuideAgent extends Agent{
 		addBehaviour(fsm);
 		
 		/*****************************************************************/
-		DFAgentDescription dfd = new DFAgentDescription();
-		dfd.setName(getAID());
 		ServiceDescription giveTour = new ServiceDescription();
 		giveTour.setType("give-tour");
 		giveTour.setName("get-tour");
 		giveTour.addOntologies("get-tour-guide");
-		dfd.addServices(giveTour);
-		
+		register(giveTour);
+		/****************************************************************/
+	}
+	
+	private void register(ServiceDescription sd) {
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		dfd.addServices(sd);
 		try {
 			DFService.register(this, dfd);
-			System.out.println(getName() + ":Successfully registered service.");
+			System.out.println(getName() + ": Successfully registered service " + sd.getName());
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
-		/****************************************************************/
 	}
 	
 //	private class HandleTourRequestBehaviour extends CyclicBehaviour {
