@@ -8,6 +8,10 @@ import jade.core.behaviours.DataStore;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -54,6 +58,23 @@ public class TourGuideAgent extends Agent{
 		fsm.registerDefaultTransition(STATE_RECEIVE_FROM_CURATOR, STATE_RESPOND_TO_PROFILER);
 		fsm.registerDefaultTransition(STATE_RESPOND_TO_PROFILER, STATE_RECEIVE_FROM_PROFILER);
 		addBehaviour(fsm);
+		
+		/*****************************************************************/
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		ServiceDescription giveTour = new ServiceDescription();
+		giveTour.setType("give-tour");
+		giveTour.setName("get-tour");
+		giveTour.addOntologies("get-tour-guide");
+		dfd.addServices(giveTour);
+		
+		try {
+			DFService.register(this, dfd);
+			System.out.println(getName() + ":Successfully registered service.");
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+		/****************************************************************/
 	}
 	
 //	private class HandleTourRequestBehaviour extends CyclicBehaviour {
@@ -113,6 +134,9 @@ public class TourGuideAgent extends Agent{
 //		}
 //	}
 	
+	/**
+	 *	This behavior is used to wait for requests from a ProfilerAgent.
+	 */
 	private class ReceiveTourRequest extends MsgReceiver {
 		public ReceiveTourRequest(Agent a,long deadline) {
 			super(a, MessageTemplate.MatchOntology("get-tour-guide"), deadline, new DataStore(), "key");
@@ -134,7 +158,9 @@ public class TourGuideAgent extends Agent{
 		}
 	}
 	
-	
+	/**
+	 *	This will send a message to the CuratorAgent, and ask it for some interesting artifacts.
+	 */
 	private class SendArtifactRequest extends OneShotBehaviour {
 		@Override
 		public void action() {
@@ -155,6 +181,9 @@ public class TourGuideAgent extends Agent{
 		}
 	}
 	
+	/**
+	 *	Wait for the Curator to reply with some interesting artifact IDs.
+	 */
 	private class ReceiveArtifactIDs extends MsgReceiver {
 		public ReceiveArtifactIDs(Agent a,long deadline) {
 			super(a, MessageTemplate.MatchOntology("get-artifact-ids"), deadline, new DataStore(), "key");
@@ -175,6 +204,10 @@ public class TourGuideAgent extends Agent{
 		}
 	}
 	
+	/**
+	 *	Look through the list of interesting IDs, and apply some filters to remove duplicates and remove items that are already visited. 
+	 *	Then send the resulting IDs to the ProfilerAgent who asked for them.
+	 */
 	private class SendItemIDs extends OneShotBehaviour {
 		@Override
 		public void action() {
