@@ -112,7 +112,8 @@ public class ProfilerAgent extends Agent {
 			template.addServices(sd);
 			
 			try {
-				DFAgentDescription[] result = DFService.search(myAgent, template);
+//				DFAgentDescription[] result = DFService.search(myAgent, template);
+				DFAgentDescription[] result = DFService.searchUntilFound(myAgent, getDefaultDF(), template, null, 20000);
 				if(result.length>0) {
 					AID receiver = result[0].getName();
 					msg.addReceiver(receiver);

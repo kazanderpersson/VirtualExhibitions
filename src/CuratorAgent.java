@@ -54,8 +54,6 @@ public class CuratorAgent extends Agent {
 			sc.close();
 		} catch (IOException e) {}
 		
-		addBehaviour(new UpdateArtifacts(this, 100000));
-		addBehaviour(new HandleRequest());
 		
 		/*****************************************************************/
 		/**************  Publish the two services to DF  *****************/
@@ -76,11 +74,14 @@ public class CuratorAgent extends Agent {
 		dfd.addServices(artifactSearch);
 		try {
 			DFService.register(this, dfd);
-			//System.out.println(getName() + ": Successfully registered services.");
+			System.out.println(getName() + ": Successfully registered services.");
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
 		/****************************************************************/
+		
+		addBehaviour(new UpdateArtifacts(this, 100000));
+		addBehaviour(new HandleRequest());
 	}
 	
 	@Override
