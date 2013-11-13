@@ -10,6 +10,10 @@ import jade.core.behaviours.DataStore;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
@@ -97,8 +101,30 @@ public class ProfilerAgent extends Agent {
 		@Override
 		public void action() {
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-			AID receiver = new AID(TourGuideAgent.TOUR_GUIDE_NAME, AID.ISLOCALNAME);	//TODO remove name later..
-			msg.addReceiver(receiver);
+//			AID receiver = new AID(TourGuideAgent.TOUR_GUIDE_NAME, AID.ISLOCALNAME);	//TODO remove name later..
+			
+			/**********************************************/
+			/******  Look for a tour guide in the DF  *****/
+			/**********************************************/
+			DFAgentDescription template = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType("give-tour");
+			template.addServices(sd);
+			
+			try {
+				DFAgentDescription[] result = DFService.search(myAgent, template);
+				if(result.length>0) {
+					AID receiver = result[0].getName();
+					msg.addReceiver(receiver);
+					System.out.println("Found a tour guide: " + receiver.getName());
+				}
+			} catch (FIPAException e1) {
+				e1.printStackTrace();
+				return;
+			}
+			
+			/**********************************************/
+			
 			try {
 				msg.setContentObject(profile);
 				System.out.println(getName() + ": Successfully added profile with name: " + profile.getName() + " to a message.");
