@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Scanner;
 
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
@@ -27,9 +28,20 @@ public class ServiceSearchAgent extends Agent {
 		System.out.println(getName() + ": Available services: ");
 		ArrayList<String> services = avaliableServices();
 		for(String s : services)
-			System.out.println(s.split("::")[1]);
+			System.out.println(s.split("::")[0]);
 		System.out.println("___________________________________________");
 		
+		System.out.println("To see parameters, enter the name of the service: ");
+		Scanner scan = new Scanner(System.in);
+		String n = scan.nextLine();
+		String args = "not found";
+		for(String s : services) {
+			String sName = s.split("::")[0];
+			String sArgs = s.split("::")[1];
+			if(n.equals(sName))
+				args = sArgs;
+		}
+		System.out.println(args);
 	}
 	
 	private void subscribeToService(final String service) {
