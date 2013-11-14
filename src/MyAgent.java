@@ -4,8 +4,13 @@ import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.DataStore;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.domain.FIPANames;
+import jade.domain.FIPAAgentManagement.NotUnderstoodException;
+import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.proto.AchieveREResponder;
+import jade.proto.SimpleAchieveREResponder;
 import jade.proto.states.MsgReceiver;
 
 public class MyAgent extends Agent {
@@ -16,7 +21,11 @@ public class MyAgent extends Agent {
 	protected void setup() {
 		System.out.println("Agent \"" + getAID().getName() + "\" is ready!");
 		
-		OneShotBehaviour test = new OneShotBehaviour() {
+		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		addBehaviour(new SimpleAchieveREResponderImpl(this, mt));
+		
+		
+		/*OneShotBehaviour test = new OneShotBehaviour() {
 
 			@Override
 			public void action() {
@@ -25,29 +34,51 @@ public class MyAgent extends Agent {
 			
 		};
 		
-		addBehaviour(test);
+		addBehaviour(test);*/
 		
 		//addBehaviour(new ListenBehaviour());
-		addBehaviour(new MsgRecBehaviour(this, Calendar.getInstance().getTimeInMillis()+5000));
+		//addBehaviour(new MsgRecBehaviour(this, Calendar.getInstance().getTimeInMillis()+5000));
 		
 
 	}
 	
-	class ListenBehaviour extends CyclicBehaviour {
+	private class SimpleAchieveREResponderImpl extends SimpleAchieveREResponder {
+		public SimpleAchieveREResponderImpl(Agent a, MessageTemplate mt) {
+			super(a,mt);
+		}
+		
+		protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) {
+			ACLMessage informDone = request.createReply();
+			if (request.getContent().equals("what is the time?")) {
+				informDone.setPerformative(ACLMessage.INFORM);
+				informDone.setContent(Calendar.getInstance().getTime().toString());
+			}
+			else
+				informDone.setPerformative(ACLMessage.NOT_UNDERSTOOD);
+			return informDone;
+			
+		}
+		
+		protected ACLMessage prepareResponse(ACLMessage request) throws NotUnderstoodException, RefuseException {
+			return super.prepareResponse(request);
+		}
+		
+	}
+	
+	private class ListenBehaviour extends CyclicBehaviour {
 
 		@Override
 		public void action() {
 			ACLMessage msg = myAgent.blockingReceive(MessageTemplate.MatchOntology("test"));
 			if (msg != null) {
-				System.out.println("message received!");
 				System.out.println(msg.getContent());
-				myAgent.addBehaviour(new singleMessageBehaviour());
+				//myAgent.addBehaviour(new singleMessageBehaviour());
 			}
 				
 		}
 	}
 	
-	class MsgRecBehaviour extends MsgReceiver {
+	private class MsgRecBehaviour extends MsgReceiver {
 		public MsgRecBehaviour(Agent a, long deadline) {
 			super(a, MessageTemplate.MatchOntology("test"), deadline, new DataStore(), "key");
 		}
