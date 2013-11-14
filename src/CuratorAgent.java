@@ -12,6 +12,7 @@ import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -62,11 +63,15 @@ public class CuratorAgent extends Agent {
 		artifactInformation.setType("artifact-lookup");
 		artifactInformation.setName("get-artifact-info");
 		artifactInformation.addOntologies("get-item-information");
+		Property args = new Property("args", "Send a Profile and use the ontology: get-item-information");
+		artifactInformation.addProperties(args);
 		
 		ServiceDescription artifactSearch = new ServiceDescription();
 		artifactSearch.setType("artifact-search");
 		artifactSearch.setName("search-for-artifacts");
 		artifactSearch.addOntologies("request-ids");
+		args = new Property("args", "Send an ArrayList<Integer> of IDs and use the ontology: request-ids");
+		artifactSearch.addProperties(args);
 		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());

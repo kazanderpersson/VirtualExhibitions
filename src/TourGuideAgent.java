@@ -11,6 +11,7 @@ import jade.core.behaviours.SequentialBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
@@ -64,6 +65,8 @@ public class TourGuideAgent extends Agent{
 		giveTour.setType("give-tour");
 		giveTour.setName("get-tour");
 		giveTour.addOntologies("get-tour-guide");
+		Property args = new Property("args", "Send a Profile and use the ontology: get-tour-guide");
+		giveTour.addProperties(args);
 		register(giveTour);
 		/****************************************************************/
 	}
