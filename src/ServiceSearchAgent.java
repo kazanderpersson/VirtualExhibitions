@@ -1,11 +1,13 @@
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Scanner;
 
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.SearchConstraints;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
@@ -26,9 +28,20 @@ public class ServiceSearchAgent extends Agent {
 		System.out.println(getName() + ": Available services: ");
 		ArrayList<String> services = avaliableServices();
 		for(String s : services)
-			System.out.println(s);
+			System.out.println(s.split("::")[0]);
 		System.out.println("___________________________________________");
 		
+		System.out.println("To see parameters, enter the name of the service: ");
+		Scanner scan = new Scanner(System.in);
+		String n = scan.nextLine();
+		String args = "not found";
+		for(String s : services) {
+			String sName = s.split("::")[0];
+			String sArgs = s.split("::")[1];
+			if(n.equals(sName))
+				args = sArgs;
+		}
+		System.out.println(args);
 	}
 	
 	private void subscribeToService(final String service) {
@@ -64,8 +77,13 @@ public class ServiceSearchAgent extends Agent {
 				while(it.hasNext()) {
 					ServiceDescription sd = (ServiceDescription) it.next();
 					String service = sd.getType();
-					if(!services.contains(service))
-						services.add(service);
+					if(!services.contains(service)) {
+						String prop = "";
+						if(sd.getAllProperties().hasNext())
+							prop = "" + ((Property)sd.getAllProperties().next()).getValue();
+						services.add(service + "::" + prop);
+//						System.out.println("Some property: " + ((Property)sd.getAllProperties().next()).getValue());
+					}
 				}
 			}
 				
