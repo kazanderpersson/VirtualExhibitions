@@ -3,8 +3,8 @@ Homework 1, Distributed Artificial Intelligence and Intelligent Agents (ID2209)
 Karl-Axel Zander, 920208-5594, kazander@kth.se
 Andreas Hallberg, 910816-0251, anhallbe@kth.se 
 
-Execution command (in JADE bin folder) for example run:
-java -cp lib\jade.jar jade.Boot -gui -agents profiler:ProfilerAgent;guide:TourGuideAgent;curator:CuratorAgent;searcher:ServiceSearchAgent
+Execution command arguments:
+-gui -agents profiler:ProfilerAgent;guide:TourGuideAgent;curator:CuratorAgent;searcher:ServiceSearchAgent
 
 PROGRAM DESCRIPTION:
 On startup up the ProfilerAgents randomly generate a profile from database (Profiles.txt). The Curator (only support for 1 agent in system for the moment) randomly loads in a artifact database.
