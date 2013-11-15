@@ -3,6 +3,11 @@ import jade.util.leap.Serializable;
 import java.util.Calendar;
 import java.util.ArrayList;
 
+/**
+ * 
+ *	This class wraps information about a person (user).
+ *
+ */
 public class Profile implements Serializable{
 	private static final long serialVersionUID = -9013238777426582211L;
 	

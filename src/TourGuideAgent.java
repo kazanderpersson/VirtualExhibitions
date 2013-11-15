@@ -22,13 +22,15 @@ import jade.proto.states.MsgReceiver;
 
 
 /**
- * 	Sequential... 
-	 *	ReceiveInterestingItemsRequestBehaviour - MsgReceiver
-	 *	AskCuratorForInterestingItems - OneShot
-	 *	ReceiveCuratorAnswer - MsgReceiver
-	 *	SendAnswerToTourGuide - OneShot
- *....
- *
+ * This Agent acts as a tour guide, and will receive a request from 
+ * a ProfilerAgent and respond with the IDs of some interesting artifacts.
+ * 
+ * Behaviours:
+ * 		FSM Behaviour:
+ * 			A - Wait for a Profiler request.
+ * 			B - Ask the Curator for related items.
+ * 			C - Respond to the Profiler.
+ * 			A, B, C, A, B, C, A, B, C......(IN)Finite State Machine :)
  */
 public class TourGuideAgent extends Agent{
 	
@@ -43,8 +45,6 @@ public class TourGuideAgent extends Agent{
 	
 	private static final String STATE_RECEIVE_FROM_PROFILER = "A";
 	private static final String STATE_TALK_TO_CURATOR = "B";
-//	private static final String STATE_SEND_TO_CURATOR = "B";
-//	private static final String STATE_RECEIVE_FROM_CURATOR = "C";
 	private static final String STATE_RESPOND_TO_PROFILER = "C";
 	
 	@Override

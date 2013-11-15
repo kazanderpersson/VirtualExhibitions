@@ -23,14 +23,13 @@ import jade.proto.states.MsgReceiver;
 
 
 /**
- * Behaviours: 
- *		StartTourBehaviour extends Ticker
- *			FetchTourInformationBehaviour - SequentialBehaviour?
- *					AskForInterestingItems - OneShot
- *					ReceiveInterestingItems - MsgReceiver
- *					AskForItemInformation - OneShot
- *					ReceiveItemInformation - MsgReceiver
- *					ShowTourToUser.... - OneShot
+ * This Profiler Agent will pick a random Profile
+ *  in the text file, ask other agents for some interesting 
+ *  artifacts and display them in a tour every 10 seconds 
+ *  (by printing it to the standard output.).
+ *  
+ *  Behaviours:
+ *  StartTourBehaviour - Fetches a new tour and displays it every 10 seconds.
  */
 public class ProfilerAgent extends Agent {
 	

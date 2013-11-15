@@ -15,6 +15,16 @@ import jade.lang.acl.ACLMessage;
 import jade.proto.SubscriptionInitiator;
 
 
+/**
+ *	This agent will subscribe to two services, 
+ *	and print some information every time someone publishes those services.
+ *
+ *	It will also print all available services, ask the user for its' choice, 
+ *	and print the parameters to use the selected service.
+ *
+ *	Behaviours:
+ *		Print available services and wait for user input.
+ */
 public class ServiceSearchAgent extends Agent {
 	@Override
 	protected void setup() {

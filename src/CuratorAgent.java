@@ -24,11 +24,15 @@ import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREResponder;
 import jade.proto.SimpleAchieveREResponder;
 
-/*
- * RecieveItemInfoRequestBehaviour extends CyclicBehaviour
+/**
+ * The Curator will take requests from a Profiler or TourAgent. 
+ * It can either be a "search for related items" request, 
+ * or a "give me information about these items" request.
  * 
+ * Behaviours:
+ * ArtifactLookup - Waits for a search request, and responds with some item IDs or item information.
+ * UpdateArtifacts - Periodically update the list of artifacts.
  */
-
 public class CuratorAgent extends Agent {
 	
 	public static final String CURATOR_NAME = "curator";

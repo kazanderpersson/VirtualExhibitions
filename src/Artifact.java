@@ -3,6 +3,10 @@ import jade.util.leap.Serializable;
 import java.util.ArrayList;
 
 
+/**
+ *
+ *	This is a wrapper for all the artifacts that can be stored in a museum, and maintained by a Curator.
+ */
 public class Artifact implements Serializable {
 	private static final long serialVersionUID = 3089947323146489985L;
 	
