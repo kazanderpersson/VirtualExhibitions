@@ -10,6 +10,7 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
+import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
@@ -41,9 +42,10 @@ public class TourGuideAgent extends Agent{
 	private String conversationID;
 	
 	private static final String STATE_RECEIVE_FROM_PROFILER = "A";
-	private static final String STATE_SEND_TO_CURATOR = "B";
-	private static final String STATE_RECEIVE_FROM_CURATOR = "C";
-	private static final String STATE_RESPOND_TO_PROFILER = "D";
+	private static final String STATE_TALK_TO_CURATOR = "B";
+//	private static final String STATE_SEND_TO_CURATOR = "B";
+//	private static final String STATE_RECEIVE_FROM_CURATOR = "C";
+	private static final String STATE_RESPOND_TO_PROFILER = "C";
 	
 	@Override
 	protected void setup() {
@@ -51,13 +53,11 @@ public class TourGuideAgent extends Agent{
 		
 		FSMBehaviour fsm = new FSMBehaviour(this);
 		fsm.registerFirstState(new ReceiveTourRequest(this, MsgReceiver.INFINITE), STATE_RECEIVE_FROM_PROFILER);
-//		fsm.registerState(new SendArtifactRequest(), STATE_SEND_TO_CURATOR);
-//		fsm.registerState(new ReceiveArtifactIDs(this, MsgReceiver.INFINITE), STATE_RECEIVE_FROM_CURATOR);
+		fsm.registerState(new TalkToCurator(this, new ACLMessage(ACLMessage.INFORM)), STATE_TALK_TO_CURATOR);
 		fsm.registerState(new SendItemIDs(), STATE_RESPOND_TO_PROFILER);
 		
-		fsm.registerDefaultTransition(STATE_RECEIVE_FROM_PROFILER, STATE_SEND_TO_CURATOR);
-		fsm.registerDefaultTransition(STATE_SEND_TO_CURATOR, STATE_RECEIVE_FROM_CURATOR);
-		fsm.registerDefaultTransition(STATE_RECEIVE_FROM_CURATOR, STATE_RESPOND_TO_PROFILER);
+		fsm.registerDefaultTransition(STATE_RECEIVE_FROM_PROFILER, STATE_TALK_TO_CURATOR);
+		fsm.registerDefaultTransition(STATE_TALK_TO_CURATOR, STATE_RESPOND_TO_PROFILER);
 		fsm.registerDefaultTransition(STATE_RESPOND_TO_PROFILER, STATE_RECEIVE_FROM_PROFILER);
 		addBehaviour(fsm);
 		
@@ -114,15 +114,18 @@ public class TourGuideAgent extends Agent{
 	/**************************************************/
 	/*                  ASDASDASD                     */
 	/**************************************************/
-	private class SimpleAchieveREInitiatorImpl extends SimpleAchieveREInitiator {
+	private class TalkToCurator extends SimpleAchieveREInitiator {
 		
-		public SimpleAchieveREInitiatorImpl(Agent a, ACLMessage msg) {
+		public TalkToCurator(Agent a, ACLMessage msg) {
 			super(a,msg);
 		}
 		
 		protected ACLMessage prepareRequest(ACLMessage msg) {
 			AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
-//			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+			
+			msg = new ACLMessage(ACLMessage.REQUEST);
+			msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+			
 			msg.addReceiver(curator);
 			msg.setOntology("request-ids");
 			msg.setConversationId(conversationID);
@@ -132,17 +135,19 @@ public class TourGuideAgent extends Agent{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			System.out.println(getName() + ": Request prepared. (and sent?)");
 			return msg;
 		}
 		
 		protected void handleInform(ACLMessage inform) {
-			System.out.println("Received:"+inform.getContent());
+//			System.out.println("Received:"+inform.getContent());
 			if(inform != null && inform.getOntology().equals("get-artifact-ids")) {
 				try {
 					itemIDs = (ArrayList<Integer>) inform.getContentObject();
 				} catch (UnreadableException e) {
 					e.printStackTrace();
 				}
+				System.out.println(getName() + ": Received IDs from Curator.");
 			}
 		}
 		
@@ -228,7 +233,7 @@ public class TourGuideAgent extends Agent{
 				reply.setOntology("tour-ids");
 				reply.setContentObject(idsToSend);
 				send(reply);
-				//System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
+				System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

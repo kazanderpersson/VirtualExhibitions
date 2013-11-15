@@ -12,6 +12,7 @@ import jade.core.behaviours.SequentialBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
+import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
@@ -185,9 +186,11 @@ public class ProfilerAgent extends Agent {
 		}
 		
 		protected ACLMessage prepareRequest(ACLMessage msg) {
-			msg = new ACLMessage(ACLMessage.INFORM);
 			AID receiver = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);		//TODO remove name later...
+			msg = new ACLMessage(ACLMessage.REQUEST);
 			msg.addReceiver(receiver);
+			msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
+			
 			try {
 				msg.setContentObject(itemIDs);
 			} catch (IOException e) {
@@ -200,11 +203,14 @@ public class ProfilerAgent extends Agent {
 		}
 		
 		protected void handleInform(ACLMessage msg) {
-			System.out.println("Received:"+msg.getContent());
+//			System.out.println("Received:"+msg.getContent());
 			if(msg != null && msg.getOntology().equals("tour-info")) {		//TODO hmmm......
 				try {
 					tourArtifacts = (ArrayList<Artifact>) msg.getContentObject();
 					System.out.println(myAgent.getAID().getName() + ": Received " + tourArtifacts.size() + " items from curator.");
+					System.out.println("The items are: ");
+					for(Artifact a : tourArtifacts)
+						System.out.println(a.getName());
 				} catch (UnreadableException e) {
 					System.out.println("Received artifacts, but can't read them! Aborting...");
 					myAgent.doDelete();

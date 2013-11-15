@@ -94,7 +94,7 @@ public class CuratorAgent extends Agent {
 		addBehaviour(new UpdateArtifacts(this, 100000));
 		
 		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
-		addBehaviour(new SimpleAchieveREResponderImpl(this, mt));
+		addBehaviour(new ArtifactLookup(this, mt));
 	}
 	
 	@Override
@@ -107,8 +107,8 @@ public class CuratorAgent extends Agent {
 		System.out.println(getName() + ": I'm going down...");
 	}
 
-	private class SimpleAchieveREResponderImpl extends SimpleAchieveREResponder {
-		public SimpleAchieveREResponderImpl(Agent a, MessageTemplate mt) {
+	private class ArtifactLookup extends SimpleAchieveREResponder {
+		public ArtifactLookup(Agent a, MessageTemplate mt) {
 			super(a,mt);
 		}
 		
