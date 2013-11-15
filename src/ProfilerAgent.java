@@ -17,6 +17,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import jade.proto.SimpleAchieveREInitiator;
 import jade.proto.states.MsgReceiver;
 
 
@@ -88,8 +89,9 @@ public class ProfilerAgent extends Agent {
 			SequentialBehaviour seq = new SequentialBehaviour(myAgent);
 			seq.addSubBehaviour(new AskForInterestingItems());
 			seq.addSubBehaviour(new ReceiveInterestingItemsBehaviour(myAgent, MsgReceiver.INFINITE));
-			seq.addSubBehaviour(new AskForItemInformation());
-			seq.addSubBehaviour(new ReceiveTourContentBehaviour(myAgent, MsgReceiver.INFINITE));
+//			seq.addSubBehaviour(new AskForItemInformation());
+//			seq.addSubBehaviour(new ReceiveTourContentBehaviour(myAgent, MsgReceiver.INFINITE));
+			seq.addSubBehaviour(new AskForItemInformation(myAgent, new ACLMessage(ACLMessage.INFORM)));
 			seq.addSubBehaviour(new EmulateTour());
 			addBehaviour(seq);			
 		}
@@ -158,10 +160,32 @@ public class ProfilerAgent extends Agent {
 		}
 	}
 
-	private class AskForItemInformation extends OneShotBehaviour {
-		@Override
-		public void action() {
-			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+//	private class AskForItemInformation extends OneShotBehaviour {
+//		@Override
+//		public void action() {
+//			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+//			AID receiver = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);		//TODO remove name later...
+//			msg.addReceiver(receiver);
+//			try {
+//				msg.setContentObject(itemIDs);
+//			} catch (IOException e) {
+//				System.err.println("Could not add Item IDs to a message for Curator...");
+//				msg.setContent(profile.getName());		//......
+//			}
+//			msg.setOntology("get-item-information");
+//			send(msg);
+//			System.out.println(myAgent.getAID().getName() + ": Asked Curator for item information on some items.");
+//		}
+//	}
+	
+	private class AskForItemInformation extends SimpleAchieveREInitiator {
+		
+		public AskForItemInformation(Agent a, ACLMessage msg) {
+			super(a, msg);
+		}
+		
+		protected ACLMessage prepareRequest(ACLMessage msg) {
+			msg = new ACLMessage(ACLMessage.INFORM);
 			AID receiver = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);		//TODO remove name later...
 			msg.addReceiver(receiver);
 			try {
@@ -171,23 +195,12 @@ public class ProfilerAgent extends Agent {
 				msg.setContent(profile.getName());		//......
 			}
 			msg.setOntology("get-item-information");
-			send(msg);
-			System.out.println(myAgent.getAID().getName() + ": Asked Curator for item information on some items.");
-		}
-	}
-
-	private class ReceiveTourContentBehaviour extends MsgReceiver {
-		
-		public ReceiveTourContentBehaviour(Agent a,long deadline) {
-			super(a, 
-					MessageTemplate.MatchPerformative(ACLMessage.INFORM), 
-					deadline, 
-					new DataStore(), 
-					"key");
+			System.out.println(myAgent.getAID().getName() + ": Message prepared to be sent to Curator.");
+			return super.prepareRequest(msg);
 		}
 		
-		@Override
-		public void handleMessage(ACLMessage msg) {
+		protected void handleInform(ACLMessage msg) {
+			System.out.println("Received:"+msg.getContent());
 			if(msg != null && msg.getOntology().equals("tour-info")) {		//TODO hmmm......
 				try {
 					tourArtifacts = (ArrayList<Artifact>) msg.getContentObject();
@@ -199,7 +212,38 @@ public class ProfilerAgent extends Agent {
 			} else
 				System.out.println(getName() + ": Received an unexpected message...............................");
 		}
+		
+		protected void handleNotUnderstood(ACLMessage msg) {
+			System.err.println("Question not understood");
+			super.handleNotUnderstood(msg);
+		}
+		
 	}
+
+//	private class ReceiveTourContentBehaviour extends MsgReceiver {
+//		
+//		public ReceiveTourContentBehaviour(Agent a,long deadline) {
+//			super(a, 
+//					MessageTemplate.MatchPerformative(ACLMessage.INFORM), 
+//					deadline, 
+//					new DataStore(), 
+//					"key");
+//		}
+//		
+//		@Override
+//		public void handleMessage(ACLMessage msg) {
+//			if(msg != null && msg.getOntology().equals("tour-info")) {		//TODO hmmm......
+//				try {
+//					tourArtifacts = (ArrayList<Artifact>) msg.getContentObject();
+//					System.out.println(myAgent.getAID().getName() + ": Received " + tourArtifacts.size() + " items from curator.");
+//				} catch (UnreadableException e) {
+//					System.out.println("Received artifacts, but can't read them! Aborting...");
+//					myAgent.doDelete();
+//				}
+//			} else
+//				System.out.println(getName() + ": Received an unexpected message...............................");
+//		}
+//	}
 	
 	private class EmulateTour extends OneShotBehaviour {
 		@Override
