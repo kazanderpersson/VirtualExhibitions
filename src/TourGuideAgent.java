@@ -3,11 +3,9 @@ import java.util.ArrayList;
 
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.DataStore;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
-import jade.core.behaviours.SequentialBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
@@ -111,9 +109,9 @@ public class TourGuideAgent extends Agent{
 		}
 	}
 	
-	/**************************************************/
-	/*                  ASDASDASD                     */
-	/**************************************************/
+	/*************************************************************************/
+	/*Ask the Curator for related items, filter them, and respond to Profiler*/
+	/*************************************************************************/
 	private class TalkToCurator extends SimpleAchieveREInitiator {
 		
 		public TalkToCurator(Agent a, ACLMessage msg) {
@@ -160,6 +158,38 @@ public class TourGuideAgent extends Agent{
 	/**************************************************/
 	/**************************************************/
 	
+	/**
+	 *	Look through the list of interesting IDs, and apply some filters to remove duplicates and remove items that are already visited. 
+	 *	Then send the resulting IDs to the ProfilerAgent who asked for them.
+	 */
+	private class SendItemIDs extends OneShotBehaviour {
+		@Override
+		public void action() {
+			try {
+				//Filter the results and make a list of IDs to send to Profiler.
+				ArrayList<Integer> idsToSend = new ArrayList<>();
+				for(Integer id : itemIDs) {
+					boolean idIsVisited = profile.getVisitedItemsID().contains(id);
+					boolean tourIsFull = idsToSend.size() >= TOUR_SIZE;
+					boolean idAlreadyInTour = idsToSend.contains(id);
+					
+					if(!tourIsFull && !idIsVisited && !idAlreadyInTour)
+						idsToSend.add(id);
+				}
+				
+				//Send the IDs to the ProfilerAgent
+	//			AID profiler = new AID(ProfilerAgent.PROFILER_NAME, AID.ISLOCALNAME);
+				ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
+				reply.addReceiver(profilerAgent);
+				reply.setOntology("tour-ids");
+				reply.setContentObject(idsToSend);
+				send(reply);
+				System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 //	
 //	/**
 //	 *	This will send a message to the CuratorAgent, and ask it for some interesting artifacts.
@@ -207,36 +237,4 @@ public class TourGuideAgent extends Agent{
 //		}
 //	}
 //	
-	/**
-	 *	Look through the list of interesting IDs, and apply some filters to remove duplicates and remove items that are already visited. 
-	 *	Then send the resulting IDs to the ProfilerAgent who asked for them.
-	 */
-	private class SendItemIDs extends OneShotBehaviour {
-		@Override
-		public void action() {
-			try {
-				//Filter the results and make a list of IDs to send to Profiler.
-				ArrayList<Integer> idsToSend = new ArrayList<>();
-				for(Integer id : itemIDs) {
-					boolean idIsVisited = profile.getVisitedItemsID().contains(id);
-					boolean tourIsFull = idsToSend.size() >= TOUR_SIZE;
-					boolean idAlreadyInTour = idsToSend.contains(id);
-					
-					if(!tourIsFull && !idIsVisited && !idAlreadyInTour)
-						idsToSend.add(id);
-				}
-				
-				//Send the IDs to the ProfilerAgent
-	//			AID profiler = new AID(ProfilerAgent.PROFILER_NAME, AID.ISLOCALNAME);
-				ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
-				reply.addReceiver(profilerAgent);
-				reply.setOntology("tour-ids");
-				reply.setContentObject(idsToSend);
-				send(reply);
-				System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
 }
