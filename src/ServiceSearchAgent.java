@@ -57,6 +57,7 @@ public class ServiceSearchAgent extends Agent {
 					if(n.equals(sName))
 						args = sArgs;
 				}
+				scan.close();
 				System.out.println(args);
 				/******  End of spaghetti.  **********/
 			}
