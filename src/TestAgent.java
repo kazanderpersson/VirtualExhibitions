@@ -106,6 +106,7 @@ public class TestAgent extends Agent {
 			//msg.setContent("what is the time?");
 			//msg.setContent("yadayada");
 			//System.out.println("yadayada");
+			
 			if (msg.getContent().equals("what is the time?"))
 				System.out.println("Sending: what is the time?");
 			return super.prepareRequest(msg);

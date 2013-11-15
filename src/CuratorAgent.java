@@ -3,6 +3,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Scanner;
 
 import jade.core.AID;
@@ -11,12 +12,17 @@ import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
+import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.Property;
+import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import jade.proto.AchieveREResponder;
+import jade.proto.SimpleAchieveREResponder;
 
 /*
  * RecieveItemInfoRequestBehaviour extends CyclicBehaviour
@@ -86,7 +92,9 @@ public class CuratorAgent extends Agent {
 		/****************************************************************/
 		
 		addBehaviour(new UpdateArtifacts(this, 100000));
-		addBehaviour(new HandleRequest());
+		
+		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		addBehaviour(new SimpleAchieveREResponderImpl(this, mt));
 	}
 	
 	@Override
@@ -98,86 +106,92 @@ public class CuratorAgent extends Agent {
 		}
 		System.out.println(getName() + ": I'm going down...");
 	}
-	
-	private class HandleRequest extends CyclicBehaviour {
-		@Override
-		public void action() {
-			ACLMessage request = receive();
-			if(request != null) {
-				if(request.getOntology().equals("request-ids")) {
-					//System.out.println(getName() + ": Received request from Tour Guide. Will handle.");
-					handleTourGuideRequest(request);
-				} else if(request.getOntology().equals("get-item-information")) {
-					//System.out.println(getName() + ": Received request from Profiler. Will handle.");
-					handleProfilerRequest(request);
+
+	private class SimpleAchieveREResponderImpl extends SimpleAchieveREResponder {
+		public SimpleAchieveREResponderImpl(Agent a, MessageTemplate mt) {
+			super(a,mt);
+		}
+		
+		protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) {
+			if (request.getOntology().equals("request-ids"))
+				return handleTourGuideRequest(request);
+			else if (request.getOntology().equals("get-item-information"))
+				return handleProfilerRequest(request);
+			else {
+				ACLMessage informDone = request.createReply();
+				informDone.setPerformative(ACLMessage.NOT_UNDERSTOOD);
+				return informDone;
+			}
+		}
+			
+			protected ACLMessage prepareResponse(ACLMessage request) throws NotUnderstoodException, RefuseException {
+				return null;
+			}
+			
+			private ACLMessage handleTourGuideRequest(ACLMessage request) {
+				AID tourGuide = request.getSender();
+				ArrayList<String> interests;
+				try {
+					interests = (ArrayList<String>) request.getContentObject();
+					//System.out.println(getName() + ": Will handle " + interests.size() + " interests. (Successfully read message)");
+				} catch (UnreadableException e) {
+					System.out.println(myAgent.getAID().getName() + ":ERROR Couldn't get interests. Will respond with an empty list...");
+					interests = new ArrayList<>();
 				}
-			} else
-				block();
+				String conversationID = request.getConversationId();
+				ArrayList<Integer> ids = new ArrayList<>();
+				
+				for(Artifact artifact : artifacts)
+					for(String interest : interests)
+						if(artifact.getGenre().contains(interest) || artifact.getType().equals(interest))
+							ids.add(artifact.getId());
+				
+				ACLMessage response = new ACLMessage(ACLMessage.INFORM);
+				response.addReceiver(tourGuide);
+				response.setConversationId(conversationID);
+				response.setOntology("get-artifact-ids");
+				try {
+					response.setContentObject(ids);
+				} catch (IOException e) {
+					System.err.println(myAgent.getAID().getName() + ": Couldn't serialize the ID-list... Will cause problems with other agents.");
+				}
+				return response;
+				//System.out.println(myAgent.getAID().getName() + ":Response message sent to TourGuide with " + ids.size() + " IDs.");
+			}
+			
+			private ACLMessage handleProfilerRequest(ACLMessage request) {
+				AID profiler = request.getSender();
+				ArrayList<Integer> requestedIDs;
+				try {
+					requestedIDs = (ArrayList<Integer>) request.getContentObject();
+					//System.out.println(getName() + ": Received request from Profiler. He requested " + requestedIDs.size() + " IDs.");
+				} catch (UnreadableException e) {
+					System.err.println(myAgent.getAID().getName() + ": Couldn't get IDs to look up. Will respond with an empty list...");
+					requestedIDs= new ArrayList<>();
+				}
+				String conversationID = request.getConversationId();
+				ArrayList<Artifact> relatedArtifacts = new ArrayList<>();
+				
+				for(Integer id : requestedIDs)
+					for(Artifact a : artifacts)
+						if(a.getId() == id)
+							relatedArtifacts.add(a);
+				
+				ACLMessage response = new ACLMessage(ACLMessage.INFORM);
+				response.addReceiver(profiler);
+				response.setConversationId(conversationID);
+				response.setOntology("tour-info");
+				try {
+					response.setContentObject(relatedArtifacts);
+				} catch (IOException e) {
+					System.err.println(myAgent.getAID().getName() + ": Couldn't serialize the Artifact list... Will cause problems with other agents.");
+				}
+				return response;
+				//System.out.println(myAgent.getAID().getName() + ":Response message sent to Profiler with " + relatedArtifacts.size() + " artifacts.");
+			}
+			
 		}
-		
-		private void handleTourGuideRequest(ACLMessage request) {
-			AID tourGuide = request.getSender();
-			ArrayList<String> interests;
-			try {
-				interests = (ArrayList<String>) request.getContentObject();
-				//System.out.println(getName() + ": Will handle " + interests.size() + " interests. (Successfully read message)");
-			} catch (UnreadableException e) {
-				System.out.println(myAgent.getAID().getName() + ":ERROR Couldn't get interests. Will respond with an empty list...");
-				interests = new ArrayList<>();
-			}
-			String conversationID = request.getConversationId();
-			ArrayList<Integer> ids = new ArrayList<>();
-			
-			for(Artifact artifact : artifacts)
-				for(String interest : interests)
-					if(artifact.getGenre().contains(interest) || artifact.getType().equals(interest))
-						ids.add(artifact.getId());
-			
-			ACLMessage response = new ACLMessage(ACLMessage.INFORM);
-			response.addReceiver(tourGuide);
-			response.setConversationId(conversationID);
-			response.setOntology("get-artifact-ids");
-			try {
-				response.setContentObject(ids);
-			} catch (IOException e) {
-				System.err.println(myAgent.getAID().getName() + ": Couldn't serialize the ID-list... Will cause problems with other agents.");
-			}
-			send(response);
-			//System.out.println(myAgent.getAID().getName() + ":Response message sent to TourGuide with " + ids.size() + " IDs.");
-		}
-		
-		private void handleProfilerRequest(ACLMessage request) {
-			AID profiler = request.getSender();
-			ArrayList<Integer> requestedIDs;
-			try {
-				requestedIDs = (ArrayList<Integer>) request.getContentObject();
-				//System.out.println(getName() + ": Received request from Profiler. He requested " + requestedIDs.size() + " IDs.");
-			} catch (UnreadableException e) {
-				System.err.println(myAgent.getAID().getName() + ": Couldn't get IDs to look up. Will respond with an empty list...");
-				requestedIDs= new ArrayList<>();
-			}
-			String conversationID = request.getConversationId();
-			ArrayList<Artifact> relatedArtifacts = new ArrayList<>();
-			
-			for(Integer id : requestedIDs)
-				for(Artifact a : artifacts)
-					if(a.getId() == id)
-						relatedArtifacts.add(a);
-			
-			ACLMessage response = new ACLMessage(ACLMessage.INFORM);
-			response.addReceiver(profiler);
-			response.setConversationId(conversationID);
-			response.setOntology("tour-info");
-			try {
-				response.setContentObject(relatedArtifacts);
-			} catch (IOException e) {
-				System.err.println(myAgent.getAID().getName() + ": Couldn't serialize the Artifact list... Will cause problems with other agents.");
-			}
-			send(response);
-			//System.out.println(myAgent.getAID().getName() + ":Response message sent to Profiler with " + relatedArtifacts.size() + " artifacts.");
-		}
-	}
-	
+
 	private class UpdateArtifacts extends TickerBehaviour {
 		public UpdateArtifacts(Agent a, long period) {
 			super(a, period);

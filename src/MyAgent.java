@@ -47,7 +47,7 @@ public class MyAgent extends Agent {
 			super(a,mt);
 		}
 		
-		protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) {
+	protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) {
 			ACLMessage informDone = request.createReply();
 			if (request.getContent().equals("what is the time?")) {
 				informDone.setPerformative(ACLMessage.INFORM);
@@ -60,7 +60,7 @@ public class MyAgent extends Agent {
 		}
 		
 		protected ACLMessage prepareResponse(ACLMessage request) throws NotUnderstoodException, RefuseException {
-			return super.prepareResponse(request);
+			return null;
 		}
 		
 	}
@@ -71,7 +71,7 @@ public class MyAgent extends Agent {
 		public void action() {
 			ACLMessage msg = myAgent.blockingReceive(MessageTemplate.MatchOntology("test"));
 			if (msg != null) {
-				System.out.println(msg.getContent());
+				System.out.println(msg.getContent() + "listen!");
 				//myAgent.addBehaviour(new singleMessageBehaviour());
 			}
 				
