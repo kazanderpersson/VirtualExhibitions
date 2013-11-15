@@ -16,6 +16,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
+import jade.proto.SimpleAchieveREInitiator;
 import jade.proto.states.MsgReceiver;
 
 
@@ -50,8 +51,8 @@ public class TourGuideAgent extends Agent{
 		
 		FSMBehaviour fsm = new FSMBehaviour(this);
 		fsm.registerFirstState(new ReceiveTourRequest(this, MsgReceiver.INFINITE), STATE_RECEIVE_FROM_PROFILER);
-		fsm.registerState(new SendArtifactRequest(), STATE_SEND_TO_CURATOR);
-		fsm.registerState(new ReceiveArtifactIDs(this, MsgReceiver.INFINITE), STATE_RECEIVE_FROM_CURATOR);
+//		fsm.registerState(new SendArtifactRequest(), STATE_SEND_TO_CURATOR);
+//		fsm.registerState(new ReceiveArtifactIDs(this, MsgReceiver.INFINITE), STATE_RECEIVE_FROM_CURATOR);
 		fsm.registerState(new SendItemIDs(), STATE_RESPOND_TO_PROFILER);
 		
 		fsm.registerDefaultTransition(STATE_RECEIVE_FROM_PROFILER, STATE_SEND_TO_CURATOR);
@@ -110,52 +111,97 @@ public class TourGuideAgent extends Agent{
 		}
 	}
 	
-	/**
-	 *	This will send a message to the CuratorAgent, and ask it for some interesting artifacts.
-	 */
-	private class SendArtifactRequest extends OneShotBehaviour {
-		@Override
-		public void action() {
-			try {
-				//Send request to CuratorAgent
-				AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
-				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
-				msg.addReceiver(curator);
-				msg.setOntology("request-ids");
-				msg.setConversationId(conversationID);
-				msg.setContentObject(profile.getInterests());
-				send(msg);
-				//System.out.println(getName() + ": Sent request to Curator. Number of interests= " + profile.getInterests().size());
-			} catch (IOException e) {
-				System.err.println(myAgent.getAID().getName() + ": Could not serialize interest list. Terminating...");
-				myAgent.doDelete();
-			}
-		}
-	}
-	
-	/**
-	 *	Wait for the Curator to reply with some interesting artifact IDs.
-	 */
-	private class ReceiveArtifactIDs extends MsgReceiver {
-		public ReceiveArtifactIDs(Agent a,long deadline) {
-			super(a, MessageTemplate.MatchOntology("get-artifact-ids"), deadline, new DataStore(), "key");
+	/**************************************************/
+	/*                  ASDASDASD                     */
+	/**************************************************/
+	private class SimpleAchieveREInitiatorImpl extends SimpleAchieveREInitiator {
+		
+		public SimpleAchieveREInitiatorImpl(Agent a, ACLMessage msg) {
+			super(a,msg);
 		}
 		
-		@Override
-		public void handleMessage(ACLMessage msg) {
+		protected ACLMessage prepareRequest(ACLMessage msg) {
+			AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+//			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+			msg.addReceiver(curator);
+			msg.setOntology("request-ids");
+			msg.setConversationId(conversationID);
 			try {
-				//Receive response from CuratorAgent
-				//System.out.println(getName() + ": Waiting for curator....");
-				itemIDs = (ArrayList<Integer>) msg.getContentObject();
-				//System.out.println(getName() + ": Received response from Curator, number of IDs = " + itemIDs.size());
-				
-			} catch (UnreadableException e) {
-				System.err.println(myAgent.getAID().getName() + ": Could not read item IDs. Terminating...");
-				myAgent.doDelete();
+				msg.setContentObject(profile.getInterests());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return msg;
+		}
+		
+		protected void handleInform(ACLMessage inform) {
+			System.out.println("Received:"+inform.getContent());
+			if(inform != null && inform.getOntology().equals("get-artifact-ids")) {
+				try {
+					itemIDs = (ArrayList<Integer>) inform.getContentObject();
+				} catch (UnreadableException e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		
+		protected void handleNotUnderstood(ACLMessage msg) {
+			System.err.println("Question not understood");
+			super.handleNotUnderstood(msg);
+		}
+		
 	}
+	/**************************************************/
+	/**************************************************/
 	
+//	
+//	/**
+//	 *	This will send a message to the CuratorAgent, and ask it for some interesting artifacts.
+//	 */
+//	private class SendArtifactRequest extends OneShotBehaviour {
+//		@Override
+//		public void action() {
+//			try {
+//				//Send request to CuratorAgent
+//				AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+//				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
+//				msg.addReceiver(curator);
+//				msg.setOntology("request-ids");
+//				msg.setConversationId(conversationID);
+//				msg.setContentObject(profile.getInterests());
+//				send(msg);
+//				//System.out.println(getName() + ": Sent request to Curator. Number of interests= " + profile.getInterests().size());
+//			} catch (IOException e) {
+//				System.err.println(myAgent.getAID().getName() + ": Could not serialize interest list. Terminating...");
+//				myAgent.doDelete();
+//			}
+//		}
+//	}
+//	
+//	/**
+//	 *	Wait for the Curator to reply with some interesting artifact IDs.
+//	 */
+//	private class ReceiveArtifactIDs extends MsgReceiver {
+//		public ReceiveArtifactIDs(Agent a,long deadline) {
+//			super(a, MessageTemplate.MatchOntology("get-artifact-ids"), deadline, new DataStore(), "key");
+//		}
+//		
+//		@Override
+//		public void handleMessage(ACLMessage msg) {
+//			try {
+//				//Receive response from CuratorAgent
+//				//System.out.println(getName() + ": Waiting for curator....");
+//				itemIDs = (ArrayList<Integer>) msg.getContentObject();
+//				//System.out.println(getName() + ": Received response from Curator, number of IDs = " + itemIDs.size());
+//				
+//			} catch (UnreadableException e) {
+//				System.err.println(myAgent.getAID().getName() + ": Could not read item IDs. Terminating...");
+//				myAgent.doDelete();
+//			}
+//		}
+//	}
+//	
 	/**
 	 *	Look through the list of interesting IDs, and apply some filters to remove duplicates and remove items that are already visited. 
 	 *	Then send the resulting IDs to the ProfilerAgent who asked for them.
