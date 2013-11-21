@@ -6,7 +6,11 @@ import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
 import jade.domain.FIPANames;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.proto.AchieveREInitiator;
@@ -61,6 +65,29 @@ public class Auctioneer extends Agent{
 		addBehaviour(fsm);
 	}
 	
+	private ArrayList<AID> getBuyers() {
+		/**********************************************/
+		/******  Look for a Curator in the DF  *****/
+		/**********************************************/
+		DFAgentDescription template = new DFAgentDescription();
+		ServiceDescription sd = new ServiceDescription();
+		sd.setType("buying-artifacts");
+		template.addServices(sd);
+		ArrayList<AID> b = new ArrayList<>();
+		try {
+			DFAgentDescription[] result = DFService.searchUntilFound(this, getDefaultDF(), template, null, 20000);
+			for(DFAgentDescription r : result) {
+				b.add(r.getName());
+				System.out.println("Added a buyer");
+			}
+		} catch (FIPAException e1) {
+			e1.printStackTrace();
+			return null;
+		}
+		return b;
+		/**********************************************/
+	}
+	
 	private class StartAuction extends OneShotBehaviour {
 		@Override
 		public void action() {
@@ -72,6 +99,8 @@ public class Auctioneer extends Agent{
 			for(AID aid : buyers)
 				initMessage.addReceiver(aid);
 			send(initMessage);
+			
+			System.out.println(getName() + ": Auction started.");
 		}
 	}
 	
@@ -93,6 +122,8 @@ public class Auctioneer extends Agent{
 			
 			if(buyers.size() > 0)
 				send(message);
+			
+			System.out.println(getName() + ": CFP sent to " + buyers.size() + " agents. Item: " + item + " price: " + price);
 		}
 	}
 	
@@ -103,6 +134,7 @@ public class Auctioneer extends Agent{
 		public ReceiveProposals(Agent a) {
 			super(a);
 			receivedProposals = new Vector<>();
+			System.out.println(getName() + ": Waiting for proposals...");
 		}
 		
 		@Override
@@ -127,7 +159,6 @@ public class Auctioneer extends Agent{
 
 		@Override
 		public boolean done() {
-			System.out.println(getName() + ": Received all proposals.");
 			return allProposalsHandled;
 		}
 	}
@@ -138,6 +169,8 @@ public class Auctioneer extends Agent{
 		
 		@Override
 		public void action() {
+			System.out.println(getName() + ": Handling proposals...");
+			
 			Vector<AID> interestedBuyers = new Vector<>();
 			for(ACLMessage msg : receivedProposals)
 				if(msg.getContent().equals("yes"))				//TODO: Probably should make that string more accessible...
@@ -162,13 +195,18 @@ public class Auctioneer extends Agent{
 				if(interestedBuyers.size() > 0)
 					send(loseMessage);
 				status = TERMINATE_AUCTION;
+				System.out.println(getName() + ": Somebody bought the item! Time to terminate..");
 			} else {
 				price -= priceReduction;
 				boolean priceLimitReached = price <= priceLimit;
-				if(priceLimitReached)
+				if(priceLimitReached) {
 					status = TERMINATE_AUCTION;
-				else
+					System.out.println(getName() + ": Price limit reached... Time to terminate..");
+				}
+				else {
+					System.out.println(getName() + ": Price was lowered annd auction will continue.");
 					status = CONTINUE_AUCTION;
+				}
 			}
 			
 		}
@@ -189,6 +227,7 @@ public class Auctioneer extends Agent{
 			for(AID aid : buyers)
 				noBidsMessage.addReceiver(aid);
 			send(noBidsMessage);
+			System.out.println(getName() + ": No-bids sent, auction is terminating.");
 		}
 	}
 }

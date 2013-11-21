@@ -7,6 +7,9 @@ import java.util.Scanner;
 
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.SimpleBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
@@ -18,9 +21,11 @@ import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.MessageTemplate.MatchExpression;
 import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREResponder;
 import jade.proto.SimpleAchieveREResponder;
+import jade.proto.states.MsgReceiver;
 
 /**
  * The Curator will take requests from a Profiler or TourAgent. 
@@ -81,10 +86,14 @@ public class CuratorAgent extends Agent {
 		args = new Property("args", "Send an ArrayList<Integer> of IDs and use the ontology: request-ids");
 		artifactSearch.addProperties(args);
 		
+		ServiceDescription buyingArtifacts = new ServiceDescription();
+		buyingArtifacts.setType("buying-artifacts");
+		
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		dfd.addServices(artifactInformation);
 		dfd.addServices(artifactSearch);
+		dfd.addServices(buyingArtifacts);
 		try {
 			DFService.register(this, dfd);
 			System.out.println(getName() + ": Successfully registered services.");
@@ -230,6 +239,22 @@ public class CuratorAgent extends Agent {
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}
+		}
+	}
+
+	private class WaitForAuction extends SimpleBehaviour {
+		
+		@Override
+		public void action() {
+			MessageTemplate template = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.INFORM).MatchContent("inform-start-of-auction");
+			ACLMessage message = receive(template);
+			if(message != null)
+				System.out.println(getName() + ": Received Auction start message!");
+		}
+
+		@Override
+		public boolean done() {
+			return false;
 		}
 	}
 }
