@@ -119,7 +119,31 @@ public class TourGuideAgent extends Agent{
 		}
 		
 		protected ACLMessage prepareRequest(ACLMessage msg) {
-			AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+//			AID curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+			
+			/**********************************************/
+			/******  Look for a Curator in the DF  *****/
+			/**********************************************/
+			DFAgentDescription template = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType("artifact-search");
+			template.addServices(sd);
+			AID curator;
+			try {
+				DFAgentDescription[] result = DFService.searchUntilFound(myAgent, getDefaultDF(), template, null, 20000);
+				if(result.length>0) {
+//					AID receiver = result[0].getName();
+//					msg.addReceiver(receiver);
+					curator = result[0].getName();
+					System.out.println(getName() + ": Found a curator: " + curator.getName());
+				} else
+					curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+			} catch (FIPAException e1) {
+				e1.printStackTrace();
+				return null;
+			}
+			
+			/**********************************************/
 			
 			msg = new ACLMessage(ACLMessage.REQUEST);
 			msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);

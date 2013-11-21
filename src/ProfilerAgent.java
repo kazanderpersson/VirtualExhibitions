@@ -186,9 +186,34 @@ public class ProfilerAgent extends Agent {
 		}
 		
 		protected ACLMessage prepareRequest(ACLMessage msg) {
-			AID receiver = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);		//TODO remove name later...
+//			AID receiver = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);		//TODO remove name later...
+			
+			/**********************************************/
+			/******  Look for a Curator in the DF  *****/
+			/**********************************************/
+			DFAgentDescription template = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType("artifact-lookup");
+			template.addServices(sd);
+			AID curator;
+			try {
+				DFAgentDescription[] result = DFService.searchUntilFound(myAgent, getDefaultDF(), template, null, 20000);
+				if(result.length>0) {
+//					AID receiver = result[0].getName();
+//					msg.addReceiver(receiver);
+					curator = result[0].getName();
+					System.out.println(getName() + ": Found a curator: " + curator.getName());
+				} else
+					curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
+			} catch (FIPAException e1) {
+				e1.printStackTrace();
+				return null;
+			}
+			
+			/**********************************************/
+			
 			msg = new ACLMessage(ACLMessage.REQUEST);
-			msg.addReceiver(receiver);
+			msg.addReceiver(curator);
 			msg.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 			
 			try {
