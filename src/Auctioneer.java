@@ -145,6 +145,7 @@ public class Auctioneer extends Agent{
 		
 		@Override
 		public void action() {
+			allProposalsHandled = false;		//TODO Refactor...
 			ACLMessage message = receive();
 			if(message != null) {
 				switch(message.getPerformative()) {
@@ -213,6 +214,8 @@ public class Auctioneer extends Agent{
 					System.out.println(getName() + ": Price was lowered annd auction will continue.");
 					status = CONTINUE_AUCTION;
 				}
+//				interestedBuyers = new Vector<>();
+//				receivedProposals = new Vector<ACLMessage>();
 			}
 			
 		}

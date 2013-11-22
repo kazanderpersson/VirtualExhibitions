@@ -3,6 +3,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.Scanner;
 
 import jade.core.AID;
@@ -40,35 +41,37 @@ public class CuratorAgent extends Agent {
 	
 	public static final String CURATOR_NAME = "curator";
 	ArrayList<Artifact> artifacts;
+	
+	private String item;
+	private int price;
+	private AID marketAgent;
 
 	private final String ARTIFACTS_SOURCE = "Artifacts_database1.txt";
 	
 	@Override
 	protected void setup() {
-		try {  //randomly assign an artifact database to agent
-			Scanner sc;
-			if ((int)(Math.random()*2) == 0)
-				sc = new Scanner(new File("Artifacts_database1.txt"));
-			else
-				sc = new Scanner(new File("Artifacts_database2.txt"));
-			
-			sc.nextLine(); //jump first two description rows in text file
-			sc.nextLine();
-
-			artifacts = new ArrayList<Artifact>();
-			String[] input = new String[6];
-			int id = 1;
-			do { //read in all artifact entries in file
-				sc.nextLine();
-				for (int i=0; i<input.length; i++) 
-					input[i] = sc.nextLine();
-				artifacts.add(new Artifact(id, input[0], input[1], input[2], input[3], input[4], new ArrayList<String>(Arrays.asList(input[5].split(", ")))));
-				id++;
-			} while (sc.hasNextLine());
-			sc.close();
-		} catch (IOException e) {}
+		initArtifacts();
+		publishServices();
+		addBehaviour(new UpdateArtifacts(this, 100000));
 		
+		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+		addBehaviour(new ArtifactLookup(this, mt));
 		
+		addBehaviour(new WaitForAuction());
+		addBehaviour(new HandleCFP());
+	}
+	
+	@Override
+	protected void takeDown() {
+		try {
+			DFService.deregister(this);
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
+		System.out.println(getName() + ": I'm going down...");
+	}
+	
+	private void publishServices() {
 		/*****************************************************************/
 		/**************  Publish the two services to DF  *****************/
 		/*****************************************************************/
@@ -102,23 +105,31 @@ public class CuratorAgent extends Agent {
 			e.printStackTrace();
 		}
 		/****************************************************************/
-		
-//		addBehaviour(new UpdateArtifacts(this, 100000));
-//		
-//		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
-//		addBehaviour(new ArtifactLookup(this, mt));
-		
-		addBehaviour(new WaitForAuction());
 	}
 	
-	@Override
-	protected void takeDown() {
-		try {
-			DFService.deregister(this);
-		} catch (FIPAException e) {
-			e.printStackTrace();
-		}
-		System.out.println(getName() + ": I'm going down...");
+	private void initArtifacts() {
+		try {  //randomly assign an artifact database to agent
+			Scanner sc;
+			if ((int)(Math.random()*2) == 0)
+				sc = new Scanner(new File("Artifacts_database1.txt"));
+			else
+				sc = new Scanner(new File("Artifacts_database2.txt"));
+			
+			sc.nextLine(); //jump first two description rows in text file
+			sc.nextLine();
+
+			artifacts = new ArrayList<Artifact>();
+			String[] input = new String[6];
+			int id = 1;
+			do { //read in all artifact entries in file
+				sc.nextLine();
+				for (int i=0; i<input.length; i++) 
+					input[i] = sc.nextLine();
+				artifacts.add(new Artifact(id, input[0], input[1], input[2], input[3], input[4], new ArrayList<String>(Arrays.asList(input[5].split(", ")))));
+				id++;
+			} while (sc.hasNextLine());
+			sc.close();
+		} catch (IOException e) {}
 	}
 
 	private class ArtifactLookup extends SimpleAchieveREResponder {
@@ -247,17 +258,65 @@ public class CuratorAgent extends Agent {
 
 	private class WaitForAuction extends SimpleBehaviour {
 		
+		private boolean newAuctionStarted = false;
+		
 		@Override
 		public void action() {
 			MessageTemplate template = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.INFORM).MatchContent("inform-start-of-auction");
 			ACLMessage message = receive(template);
-			if(message != null)
+			if(message != null) {
+				marketAgent = message.getSender();
+				newAuctionStarted = true;
 				System.out.println(getName() + ": Received Auction start message!");
+			}
 		}
 
 		@Override
 		public boolean done() {
-			return false;
+			return newAuctionStarted;
+		}
+	}
+
+	private class HandleCFP extends SimpleBehaviour {
+		private boolean cfpReceived = false;
+		
+		@Override
+		public void action() {
+			MessageTemplate template = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.CFP).MatchSender(marketAgent);
+			ACLMessage cfp = receive(template);
+			if(cfp != null) {
+				System.out.println(getName() + ": Received CFP - " + cfp.getContent());
+				try {
+					item = cfp.getContent().split(" ")[0];
+					price = Integer.parseInt(cfp.getContent().split(" ")[1]);
+					
+					ACLMessage proposal = new ACLMessage(ACLMessage.PROPOSE);
+					proposal.addReceiver(marketAgent);
+					boolean accept = acceptOffer(item, price);
+					if(accept)
+						proposal.setContent("yes");
+					else
+						proposal.setContent("no");
+					send(proposal);
+					System.out.println(getName() + ": Proposal sent to Auctioneer. Proposal= " + proposal.getContent());
+				} catch(Exception e) {
+					ACLMessage notUnderstood = new ACLMessage(ACLMessage.NOT_UNDERSTOOD);
+					notUnderstood.addReceiver(marketAgent);
+					send(notUnderstood);
+				}
+				cfpReceived = true;
+			}
+		}
+
+		@Override
+		public boolean done() {
+			return cfpReceived;
+		}
+		
+		private boolean acceptOffer(String item, int price) {
+			Random rand = new Random();
+			int a = rand.nextInt(100);
+			return a > 90;
 		}
 	}
 }
