@@ -12,9 +12,6 @@ import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
-import jade.lang.acl.MessageTemplate;
-import jade.proto.AchieveREInitiator;
-import jade.proto.SimpleAchieveREInitiator;
 
 /**
  * StartAuction -> CallForProposals -> ReceiveProposals -> HandleProposals -> NoBids/CallForProposals....
@@ -42,11 +39,19 @@ public class Auctioneer extends Agent{
 	@Override
 	protected void setup() {
 		
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		item = "test_item_1";
 		price = 100;
 		priceLimit = 50;
 		priceReduction = 10;
-		buyers = new ArrayList<>();
+//		buyers = new ArrayList<>();
+		buyers = getBuyers();
 		receivedProposals = new Vector<>();
 		
 		FSMBehaviour fsm = new FSMBehaviour(this);
@@ -71,6 +76,7 @@ public class Auctioneer extends Agent{
 		/**********************************************/
 		DFAgentDescription template = new DFAgentDescription();
 		ServiceDescription sd = new ServiceDescription();
+		sd.setName("buying-artifacts");
 		sd.setType("buying-artifacts");
 		template.addServices(sd);
 		ArrayList<AID> b = new ArrayList<>();

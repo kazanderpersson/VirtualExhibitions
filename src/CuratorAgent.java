@@ -87,6 +87,7 @@ public class CuratorAgent extends Agent {
 		artifactSearch.addProperties(args);
 		
 		ServiceDescription buyingArtifacts = new ServiceDescription();
+		buyingArtifacts.setName("buying-artifacts");
 		buyingArtifacts.setType("buying-artifacts");
 		
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -102,10 +103,12 @@ public class CuratorAgent extends Agent {
 		}
 		/****************************************************************/
 		
-		addBehaviour(new UpdateArtifacts(this, 100000));
+//		addBehaviour(new UpdateArtifacts(this, 100000));
+//		
+//		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
+//		addBehaviour(new ArtifactLookup(this, mt));
 		
-		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
-		addBehaviour(new ArtifactLookup(this, mt));
+		addBehaviour(new WaitForAuction());
 	}
 	
 	@Override
