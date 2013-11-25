@@ -1,4 +1,8 @@
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Scanner;
 import java.util.Vector;
 
 import jade.core.AID;
@@ -21,6 +25,7 @@ public class Auctioneer extends Agent{
 	
 	private ArrayList<AID> buyers = new ArrayList<>();
 	private Vector<ACLMessage> receivedProposals;
+	private ArrayList<Artifact> artifacts;
 	
 	private String item = "test_item_1";
 	private int price = 100;
@@ -39,7 +44,7 @@ public class Auctioneer extends Agent{
 	
 	@Override
 	protected void setup() {
-		
+		initArtifacts();
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
@@ -93,6 +98,29 @@ public class Auctioneer extends Agent{
 		}
 		return b;
 		/**********************************************/
+	}
+	
+	private void initArtifacts() {
+		try {  //randomly assign an artifact database to agent
+			Scanner sc;
+			String ARTIFACTS_SOURCE = "Artifacts_database1.txt";
+			sc = new Scanner(new File(ARTIFACTS_SOURCE));
+
+			sc.nextLine(); //jump first two description rows in text file
+			sc.nextLine();
+
+			artifacts = new ArrayList<Artifact>();
+			String[] input = new String[6];
+			int id = 1;
+			do { //read in all artifact entries in file
+				sc.nextLine();
+				for (int i=0; i<input.length; i++) 
+					input[i] = sc.nextLine();
+				artifacts.add(new Artifact(id, input[0], input[1], input[2], input[3], input[4], new ArrayList<String>(Arrays.asList(input[5].split(", ")))));
+				id++;
+			} while (sc.hasNextLine());
+			sc.close();
+		} catch (IOException e) {}
 	}
 	
 	private class StartAuction extends OneShotBehaviour {
@@ -154,6 +182,8 @@ public class Auctioneer extends Agent{
 						receivedProposals.add(message);
 						allProposalsHandled = receivedProposals.size() == buyers.size();
 						System.out.println(getName() + ": Received proposal from " + message.getSender().getName() + ": " + message.getContent());
+						System.out.println("Received Proposals: " + receivedProposals.size());
+						System.out.println("Buyers: " + buyers.size());
 						break;
 					case ACLMessage.NOT_UNDERSTOOD:
 						System.out.println(getName() + ": Received \"NOT_UNDERSTOOD\"...");
@@ -185,24 +215,26 @@ public class Auctioneer extends Agent{
 				if(msg.getContent().equals("yes"))				//TODO: Probably should make that string more accessible...
 					interestedBuyers.add(msg.getSender());
 			
+			AID winner = new AID();
 			if(interestedBuyers.size() > 0) {				
-				AID winner = interestedBuyers.get(0);
+				winner = interestedBuyers.get(0);
 				ACLMessage winMessage = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
 				winMessage.setSender(myAgent.getAID());
 				winMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 				winMessage.addReceiver(winner);
+				winMessage.setContent("You won!");
 				send(winMessage);
-				interestedBuyers.remove(0);
+//				interestedBuyers.remove(0);
 				
-				ACLMessage loseMessage = new ACLMessage(ACLMessage.REJECT_PROPOSAL);
-				loseMessage.setSender(myAgent.getAID());
-				loseMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
-				
-				for(AID loser : interestedBuyers)
-					loseMessage.addReceiver(loser);
-				
-				if(interestedBuyers.size() > 0)
-					send(loseMessage);
+//				ACLMessage rejectMessage = new ACLMessage(ACLMessage.REJECT_PROPOSAL);
+//				rejectMessage.setSender(myAgent.getAID());
+//				rejectMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
+//				
+//				for(AID loser : interestedBuyers)
+//					rejectMessage.addReceiver(loser);
+//				
+//				if(interestedBuyers.size() > 0)
+//					send(rejectMessage);
 				status = TERMINATE_AUCTION;
 				System.out.println(getName() + ": Somebody bought the item! Time to terminate..");
 			} else {
@@ -216,10 +248,17 @@ public class Auctioneer extends Agent{
 					System.out.println(getName() + ": Price was lowered annd auction will continue.");
 					status = CONTINUE_AUCTION;
 				}
-//				interestedBuyers = new Vector<>();
-//				receivedProposals = new Vector<ACLMessage>();
 			}
 			
+			ACLMessage rejectMessage = new ACLMessage(ACLMessage.REJECT_PROPOSAL);
+			rejectMessage.setSender(myAgent.getAID());
+			rejectMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
+			rejectMessage.setContent("I rejected your proposal...");
+			for(AID buyer : buyers)
+				if(buyer != winner)
+					rejectMessage.addReceiver(buyer);
+			send(rejectMessage);
+			receivedProposals = new Vector<>();				//TODO: Do this somewhere else....
 		}
 		
 		@Override
