@@ -6,6 +6,7 @@ import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.SimpleBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
@@ -133,7 +134,7 @@ public class Auctioneer extends Agent{
 		}
 	}
 	
-	private class ReceiveProposals extends Behaviour {
+	private class ReceiveProposals extends SimpleBehaviour {
 		
 		private boolean allProposalsHandled = false;
 		
@@ -161,7 +162,8 @@ public class Auctioneer extends Agent{
 					default:
 						break;
 				}
-			}
+			} else
+				block();
 		}
 
 		@Override

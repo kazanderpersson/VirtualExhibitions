@@ -273,7 +273,8 @@ public class CuratorAgent extends Agent {
 				marketAgent = message.getSender();
 				newAuctionStarted = true;
 				System.out.println(getName() + ": Received Auction start message!");
-			}
+			} else
+				block();
 		}
 
 		@Override
@@ -310,7 +311,8 @@ public class CuratorAgent extends Agent {
 					send(notUnderstood);
 				}
 				cfpReceived = true;
-			}
+			} else
+				block();
 		}
 
 		@Override
