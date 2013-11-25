@@ -46,7 +46,7 @@ public class CuratorAgent extends Agent {
 	private int price;
 	private AID marketAgent;
 
-	private final String ARTIFACTS_SOURCE = "Artifacts_database1.txt";
+	private String ARTIFACTS_SOURCE = "";
 	
 	@Override
 	protected void setup() {
@@ -110,11 +110,16 @@ public class CuratorAgent extends Agent {
 	private void initArtifacts() {
 		try {  //randomly assign an artifact database to agent
 			Scanner sc;
-			if ((int)(Math.random()*2) == 0)
-				sc = new Scanner(new File("Artifacts_database1.txt"));
-			else
-				sc = new Scanner(new File("Artifacts_database2.txt"));
-			
+			if ((int)(Math.random()*2) == 0) {
+				ARTIFACTS_SOURCE = "Artifacts_database1.txt";
+				sc = new Scanner(new File(ARTIFACTS_SOURCE));
+			}
+
+			else {
+				ARTIFACTS_SOURCE = "Artifacts_database2.txt";
+				sc = new Scanner(new File(ARTIFACTS_SOURCE));
+			}
+
 			sc.nextLine(); //jump first two description rows in text file
 			sc.nextLine();
 
@@ -238,7 +243,7 @@ public class CuratorAgent extends Agent {
 					String date = scan.nextLine();
 					String type = scan.nextLine();
 					String description = scan.nextLine();
-					String[] tags = scan.nextLine().split(",");
+					String[] tags = scan.nextLine().split(", ");
 					
 					ArrayList<String> tagList = new ArrayList<>(Arrays.asList(tags));
 					
@@ -284,7 +289,7 @@ public class CuratorAgent extends Agent {
 		public void action() {
 			MessageTemplate template = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.CFP).MatchSender(marketAgent);
 			ACLMessage cfp = receive(template);
-			if(cfp != null) {
+			if(cfp != null) { //else block();
 				System.out.println(getName() + ": Received CFP - " + cfp.getContent());
 				try {
 					item = cfp.getContent().split(" ")[0];
@@ -313,7 +318,7 @@ public class CuratorAgent extends Agent {
 			return cfpReceived;
 		}
 		
-		private boolean acceptOffer(String item, int price) {
+		private boolean acceptOffer(String item, int price) { //task 2, bidding strategy
 			Random rand = new Random();
 			int a = rand.nextInt(100);
 			return a > 90;
