@@ -89,10 +89,8 @@ public class ProfilerAgent extends Agent {
 			SequentialBehaviour seq = new SequentialBehaviour(myAgent);
 			seq.addSubBehaviour(new AskForInterestingItems());
 			seq.addSubBehaviour(new ReceiveInterestingItemsBehaviour(myAgent, MsgReceiver.INFINITE));
-//			seq.addSubBehaviour(new AskForItemInformation());
-//			seq.addSubBehaviour(new ReceiveTourContentBehaviour(myAgent, MsgReceiver.INFINITE));
 			seq.addSubBehaviour(new AskForItemInformation(myAgent, new ACLMessage(ACLMessage.INFORM)));
-			seq.addSubBehaviour(new EmulateTour());
+			//seq.addSubBehaviour(new EmulateTour());
 			addBehaviour(seq);			
 		}
 	}

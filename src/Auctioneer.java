@@ -49,13 +49,20 @@ public class Auctioneer extends Agent{
 	@Override
 	protected void setup() {
 		initArtifacts();
-		try {Thread.sleep(1500);} catch (InterruptedException e) {}
+		try {Thread.sleep(1500);} catch (InterruptedException e) {} //let curators do their setup
+		
+		System.out.println("\n" + getName() + ": ARTIFACT STOCK: ");
+		for (Artifact a : artifacts) {
+			System.out.print("- \"" + a.getName() + "\" (GENRES: ");
+			for (int i=0; i < a.getGenre().size(); i++)
+				System.out.print(a.getGenre().get(i) + ((i != a.getGenre().size()-1) ? ", " : ""));
+			System.out.println(")");
+		}
 
-//		buyers = new ArrayList<>();
 		buyers = getBuyers();
 		receivedProposals = new Vector<>();
 		
-		addBehaviour(new SpawnAuction(this, 2000));
+		addBehaviour(new SpawnAuction(this, 1000)); //auction every second
 	}
 	
 	private class SpawnAuction extends TickerBehaviour {
@@ -79,7 +86,7 @@ public class Auctioneer extends Agent{
 				auctionLoop.registerTransition(STATE_HANDLE_PROPOSALS, STATE_NO_BIDS, TERMINATE_AUCTION);
 				addBehaviour(auctionLoop);
 			} else
-				System.out.println("Nothing left to sell...");
+				System.out.println(getName() + ": I have nothing left to sell...");
 		}
 	}
 	
@@ -135,21 +142,20 @@ public class Auctioneer extends Agent{
 		public void action() {
 			int randomArtifact = (int)(Math.random()*artifacts.size());
 			artifacts.get(randomArtifact).setPrice(startPrice);
-			item = artifacts.get(randomArtifact); //randomly choose and actuion out an available artifact
+			item = artifacts.get(randomArtifact); //randomly choose and auction out an available artifact
 			
 			ACLMessage initMessage = new ACLMessage(ACLMessage.INFORM);
 			initMessage.setSender(myAgent.getAID());
 			initMessage.addReplyTo(myAgent.getAID());
 			initMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 			initMessage.setContent("inform-start-of-auction");
-			convID = ""+(new Random()).nextInt();
+			convID = ""+(new Random()).nextInt(); //avoid mixing up simultaneously ongoing messaging
 			initMessage.setConversationId(convID);
 			buyers = getBuyers();
 			for(AID aid : buyers)
 				initMessage.addReceiver(aid);
-			System.out.println("\n" + getName() + ": Auction started. ITEM: " + item.getName());
+			System.out.println("\n" + getName() + ": Auction started. ITEM: \"" + item.getName() + "\"");
 			send(initMessage);
-			
 		}
 	}
 	
@@ -173,12 +179,10 @@ public class Auctioneer extends Agent{
 			System.out.println(getName() + ": CFP sent to " + buyers.size() + " agents. PRICE: " + item.getPrice());
 			if(buyers.size() > 0)
 				send(message);
-			
 		}
 	}
 	
 	private class ReceiveProposals extends SimpleBehaviour {
-		
 		private boolean allProposalsHandled = false;
 		
 		public ReceiveProposals(Agent a) {
@@ -189,7 +193,7 @@ public class Auctioneer extends Agent{
 		
 		@Override
 		public void action() {
-			allProposalsHandled = false;		//TODO Refactor...
+			allProposalsHandled = false; //TODO Refactor...
 			ACLMessage message = receive();
 			if(message != null && message.getConversationId().equals(convID)) {
 				switch(message.getPerformative()) {
@@ -231,7 +235,7 @@ public class Auctioneer extends Agent{
 			
 			AID winner = new AID();
 			if(interestedBuyers.size() > 0) {				
-				winner = interestedBuyers.get(0); //if multiple buyers bid at same price, take the first one who responded(?)
+				winner = interestedBuyers.get(0); //if multiple buyers bid at same price, take the first one who responded
 				ACLMessage winMessage = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
 				winMessage.setSender(myAgent.getAID());
 				winMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
@@ -241,24 +245,14 @@ public class Auctioneer extends Agent{
 				send(winMessage);
 				artifacts.remove(item);
 				
-//				interestedBuyers.remove(0);
-				
-//				ACLMessage rejectMessage = new ACLMessage(ACLMessage.REJECT_PROPOSAL);
-//				rejectMessage.setSender(myAgent.getAID());
-//				rejectMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
-//				
-//				for(AID loser : interestedBuyers)
-//					rejectMessage.addReceiver(loser);
-//				
-//				if(interestedBuyers.size() > 0)
-//					send(rejectMessage);
 				status = TERMINATE_AUCTION;
 				System.out.println(getName() + ": SOLD TO " + winner.getName() + "! Auction terminated");
-			} else {
+			} 
+			else {
 				item.setPrice(item.getPrice() - priceReduction);
-				if(item.getPrice() <= priceLimit) {
+				if(item.getPrice() < priceLimit) {
 					status = TERMINATE_AUCTION;
-					System.out.println(getName() + ": NO BUY! Price limit reached, auction terminated");
+					System.out.println(getName() + ": NO BUY! Price limit reached, auction terminated\n");
 				}
 				else {
 					System.out.println(getName() + ": NO BUY! Price was lowered and auction continue.");
@@ -272,10 +266,10 @@ public class Auctioneer extends Agent{
 			rejectMessage.setContent("I rejected your proposal...");
 			rejectMessage.setConversationId(convID);
 			for(AID buyer : buyers)
-				if(buyer != winner)
+				if(buyer != winner) //send reject to all that isn't winner, even though there isn't a winner at all in this round
 					rejectMessage.addReceiver(buyer);
 			send(rejectMessage);
-			receivedProposals = new Vector<>();				//TODO: Do this somewhere else....
+			receivedProposals = new Vector<>(); //TODO: Do this somewhere else....
 		}
 		
 		@Override

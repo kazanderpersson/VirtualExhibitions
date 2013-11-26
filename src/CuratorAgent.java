@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.ArrayList;
+
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.FSMBehaviour;
@@ -45,7 +46,7 @@ public class CuratorAgent extends Agent {
 	
 	private ArrayList<String> interests = new ArrayList<String>();
 	private ArrayList<Integer> priorityInterests = new ArrayList<Integer>();
-	private int money = 3000;
+	private int money = 5000;
 
 	@Override
 	protected void setup() {
@@ -64,17 +65,15 @@ public class CuratorAgent extends Agent {
 		}
 		System.out.print(getName() + ": My interests & priority: ");
 		for (int j=0; j<interests.size(); j++)
-			System.out.print(interests.get(j) + "(" + priorityInterests.get(j) + "), "); System.out.print("\n");
-		
+			System.out.print(interests.get(j) + "(" + priorityInterests.get(j) + ")" + ((j != interests.size()-1) ? ", " : "")); System.out.print("\n");
+	
 		publishServices();
 		
 		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
 		addBehaviour(new ArtifactLookup(this, mt));
 		
-//		addBehaviour(new WaitForAuction());
-//		addBehaviour(new HandleCFP());
-		addBehaviour(new AuctionFSM(this));
-		addBehaviour(new Income(this, 5000)); //every 5th auction
+		addBehaviour(new AuctionFSM(this)); //participate in auction
+		addBehaviour(new Income(this, 3000)); //give curators new money every 3th auction
 	}
 	
 	@Override
@@ -237,7 +236,6 @@ public class CuratorAgent extends Agent {
 //			System.out.println(getName() + ": state=Waiting...");
 			newAuctionStarted = false;
 			MessageTemplate template = MessageTemplate.MatchContent("inform-start-of-auction");
-//			MessageTemplate template = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.INFORM).MatchContent("inform-start-of-auction");
 			ACLMessage message = receive(template);
 			if(message != null) {
 				marketAgent = message.getSender();
@@ -262,23 +260,19 @@ public class CuratorAgent extends Agent {
 		public void action() {
 //			System.out.println(getName() + ": state=Handle_CFP");
 			informed = false;
-//			MessageTemplate template_cfp = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.CFP).MatchSender(marketAgent);
 			MessageTemplate template_cfp = MessageTemplate.MatchPerformative(ACLMessage.CFP);
-//			MessageTemplate template_nobids = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.INFORM).MatchSender(marketAgent).MatchContent("no-bids");
 			MessageTemplate template_nobids = MessageTemplate.MatchContent("no-bids");
 			ACLMessage cfp = receive(template_cfp);
 			ACLMessage nobids = receive(template_nobids);
-			if(cfp != null && cfp.getConversationId().equals(convID)) { 		//CFP received
+			if(cfp != null && cfp.getConversationId().equals(convID)) { //CFP received
 				try { 
 					receivedItem = (Artifact)cfp.getContentObject();
-					//System.out.println(getName() + ": Received CFP - " + receivedItem.getName());
-					
+					//System.out.println(getName() + ": Received CFP - " + receivedItem.getName());	
 					ACLMessage proposal = new ACLMessage(ACLMessage.PROPOSE);
 					proposal.addReceiver(marketAgent);
 					proposal.setConversationId(convID);
-					boolean accept = acceptOffer(receivedItem);
 					
-					if(accept) 
+					if(acceptOffer(receivedItem)) 
 						proposal.setContent("yes");
 					else
 						proposal.setContent("no");
@@ -322,9 +316,9 @@ public class CuratorAgent extends Agent {
 				int prioritySum = 0;
 				for (int sum : genresInCommon)
 					prioritySum += sum;
-				prioritySum /= genresInCommon.size(); //average howInterests points taken all interests/genre match into consideration
+				prioritySum /= genresInCommon.size(); //average priority points taken all interests/genre match into consideration
 				
-					if ((prioritySum*1000 >= item.getPrice()) && (item.getPrice() < ((int)(money*0.7)))) //willing to pay the current price? 1000 for every interets point and dont spend more than 70% money
+					if ((prioritySum*1000 >= item.getPrice()) && (item.getPrice() <= ((int)(money*0.7)))) //willing to pay the current price? 1000 for every priority point and dont spend more than 70% money
 						return true;
 					else
 						return false;
@@ -343,8 +337,6 @@ public class CuratorAgent extends Agent {
 			receivedResponse = false;
 			MessageTemplate template_accepted = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
 			MessageTemplate template_rejected = MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL);
-//			MessageTemplate template_accepted = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.ACCEPT_PROPOSAL).MatchSender(marketAgent);
-//			MessageTemplate template_rejected = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.REJECT_PROPOSAL).MatchSender(marketAgent);
 			ACLMessage acceptMessage = receive(template_accepted);
 			ACLMessage rejectMessage = receive(template_rejected);
 			
@@ -353,9 +345,11 @@ public class CuratorAgent extends Agent {
 				accepted = PROPOSAL_ACCEPTED;
 				receivedResponse = true;
 				artifacts.add(receivedItem);
-				System.out.print(getName() + ": My artifact stock: ");
-				for (Artifact a : artifacts)
-					System.out.print(a.getName() + ", "); System.out.print("\n");
+				money -= receivedItem.getPrice(); //subtract item's cost from bank balance
+				System.out.print(getName() + ": ARTIFACT STOCK: ");
+				for (int i=0; i < artifacts.size(); i++)
+					System.out.print("\"" + artifacts.get(i).getName() + "\"" + ((i != artifacts.size()-1) ? ", " : "")); System.out.print("\n\n");
+		
 			} else if(rejectMessage != null && rejectMessage.getConversationId().equals(convID)) {
 				//System.out.println(getName() + ": My proposal was rejected... Content: " + rejectMessage.getContent());
 				accepted = PROPOSAL_REJECTED;
@@ -376,12 +370,11 @@ public class CuratorAgent extends Agent {
 		}
 	}
 
-	
 	private class AuctionEnded extends OneShotBehaviour {
 		@Override
 		public void action() {
 			int i=0;
-			while(receive() != null)							//Clear the message queue. TODO: Remove if this causes problems...
+			while(receive() != null) //Clear the message queue. TODO: Remove if this causes problems...
 				i++;
 //			System.out.println(getName() + ": Cleared " + i + " messages from queue.");
 		}
@@ -393,7 +386,7 @@ public class CuratorAgent extends Agent {
 		}
 		@Override
 		protected void onTick() {
-			int income = 1+((int)(Math.random()*10000)); //1-10000
+			int income = 1+((int)(Math.random()*4000)); //1-4000
 			money += income;
 			System.out.println(getName() + ": Received income: " + income + ":- Total: " + money + ":-");
 		}

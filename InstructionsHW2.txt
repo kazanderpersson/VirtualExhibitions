@@ -1,0 +1,17 @@
+Homework 2 (task 1&2), Distributed Artificial Intelligence and Intelligent Agents (ID2209) 
+2013-11-27
+Karl-Axel Zander, 920208-5594, kazander@kth.se
+Andreas Hallberg, 910816-0251, anhallbe@kth.se 
+
+Execution command arguments:
+-gui -platform-id VE -agents profiler:ProfilerAgent;guide:TourGuideAgent;curator1:CuratorAgent;curator2:CuratorAgent;curator3:CuratorAgent;auctioneer:Auctioneer
+(it's convenient to run the program for about 10-20 seconds, terminate it, and then study the output)
+
+PROGRAM DESCRIPTION:
+An auctioneer agent have a stock of artifacts and is holding a ongoing auction process until there are no more artifacts. Multiple curator agents are participating in the auction.
+The curators have different interests (matching with artifacts genre tags) & priority among his/her interests(priority 1-5 possible) when bidding on items,
+also a budget to take into consideration (never spend more than 70% of his/her money balance). 
+These two parameters are initiated randomly thus making the auction realistic and unique
+although the bidding strategy is pretty simple. A curator is willing to pay more for those items of higher priority for him/her, and nothing at all for items that doesn't interest him/her at all.
+The auction processes and the outcome is printed in console. 
+The VirtualExhibition process (from HW1) is retained and running the background, but the related console output is masked out to focus on the additions of HW2
