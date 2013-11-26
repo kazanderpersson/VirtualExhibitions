@@ -1,14 +1,7 @@
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Random;
-import java.util.Scanner;
-
 import jade.core.AID;
 import jade.core.Agent;
-import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SimpleBehaviour;
@@ -23,11 +16,9 @@ import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
-import jade.lang.acl.MessageTemplate.MatchExpression;
 import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREResponder;
 import jade.proto.SimpleAchieveREResponder;
-import jade.proto.states.MsgReceiver;
 
 /**
  * The Curator will take requests from a Profiler or TourAgent. 
@@ -43,6 +34,7 @@ public class CuratorAgent extends Agent {
 	public static final String CURATOR_NAME = "curator";
 	private ArrayList<Artifact> artifacts = new ArrayList<>();
 	private Artifact receivedItem;
+	private String convID = "";
 	
 	private AID marketAgent;
 	
@@ -242,6 +234,7 @@ public class CuratorAgent extends Agent {
 		
 		@Override
 		public void action() {
+//			System.out.println(getName() + ": state=Waiting...");
 			newAuctionStarted = false;
 			MessageTemplate template = MessageTemplate.MatchContent("inform-start-of-auction");
 //			MessageTemplate template = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.INFORM).MatchContent("inform-start-of-auction");
@@ -249,6 +242,7 @@ public class CuratorAgent extends Agent {
 			if(message != null) {
 				marketAgent = message.getSender();
 				newAuctionStarted = true;
+				convID = message.getConversationId();
 				//System.out.println(getName() + ": Received Auction start message!");
 			} else
 				block();
@@ -266,6 +260,7 @@ public class CuratorAgent extends Agent {
 		
 		@Override
 		public void action() {
+//			System.out.println(getName() + ": state=Handle_CFP");
 			informed = false;
 //			MessageTemplate template_cfp = MessageTemplate.MatchProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION).MatchPerformative(ACLMessage.CFP).MatchSender(marketAgent);
 			MessageTemplate template_cfp = MessageTemplate.MatchPerformative(ACLMessage.CFP);
@@ -273,15 +268,17 @@ public class CuratorAgent extends Agent {
 			MessageTemplate template_nobids = MessageTemplate.MatchContent("no-bids");
 			ACLMessage cfp = receive(template_cfp);
 			ACLMessage nobids = receive(template_nobids);
-			if(cfp != null) { 		//CFP received
+			if(cfp != null && cfp.getConversationId().equals(convID)) { 		//CFP received
 				try { 
 					receivedItem = (Artifact)cfp.getContentObject();
 					//System.out.println(getName() + ": Received CFP - " + receivedItem.getName());
 					
 					ACLMessage proposal = new ACLMessage(ACLMessage.PROPOSE);
 					proposal.addReceiver(marketAgent);
+					proposal.setConversationId(convID);
 					boolean accept = acceptOffer(receivedItem);
-					if(accept)
+					
+					if(accept) 
 						proposal.setContent("yes");
 					else
 						proposal.setContent("no");
@@ -291,12 +288,13 @@ public class CuratorAgent extends Agent {
 				catch(UnreadableException e) {
 					ACLMessage notUnderstood = new ACLMessage(ACLMessage.NOT_UNDERSTOOD);
 					notUnderstood.addReceiver(marketAgent);
+					notUnderstood.setConversationId(convID);
 					send(notUnderstood);
 				}
 				
 				informed = true;
 				status = CFP_RECEIVED;
-			} else if(nobids != null) {
+			} else if(nobids != null && nobids.getConversationId().equals(convID)) {
 				//System.out.println(getName() + ": No-bids received...");
 				informed = true;
 				status = NO_BIDS;
@@ -320,19 +318,19 @@ public class CuratorAgent extends Agent {
 				if (item.getGenre().contains(interests.get(i))) //interested in a genre item has
 					genresInCommon.add(priorityInterests.get(i));
 				
-				if (genresInCommon.size() > 0) {
-					int prioritySum = 0;
-					for (int sum : genresInCommon)
-						prioritySum += sum;
-					prioritySum /= genresInCommon.size(); //average howInterests points taken all interests/genre match into consideration
-					
-						if ((prioritySum*1000 >= item.getPrice()) && (item.getPrice() < ((int)(money*0.7)))) //willing to pay the current price? 1000 for every interets point and dont spend more than 70% money
-							return true;
-						else
-							return false;
-				}
-				else
-					return false;
+			if (genresInCommon.size() > 0) {
+				int prioritySum = 0;
+				for (int sum : genresInCommon)
+					prioritySum += sum;
+				prioritySum /= genresInCommon.size(); //average howInterests points taken all interests/genre match into consideration
+				
+					if ((prioritySum*1000 >= item.getPrice()) && (item.getPrice() < ((int)(money*0.7)))) //willing to pay the current price? 1000 for every interets point and dont spend more than 70% money
+						return true;
+					else
+						return false;
+			}
+			else
+				return false;
 		}
 	}
 
@@ -341,6 +339,7 @@ public class CuratorAgent extends Agent {
 		private boolean receivedResponse = false;
 		@Override
 		public void action() {
+//			System.out.println(getName() + ": state=HandleResponse");
 			receivedResponse = false;
 			MessageTemplate template_accepted = MessageTemplate.MatchPerformative(ACLMessage.ACCEPT_PROPOSAL);
 			MessageTemplate template_rejected = MessageTemplate.MatchPerformative(ACLMessage.REJECT_PROPOSAL);
@@ -349,7 +348,7 @@ public class CuratorAgent extends Agent {
 			ACLMessage acceptMessage = receive(template_accepted);
 			ACLMessage rejectMessage = receive(template_rejected);
 			
-			if(acceptMessage != null) {
+			if(acceptMessage != null && acceptMessage.getConversationId().equals(convID)) {
 				//System.out.println(getName() + ": My proposal was accepted! Content: " + acceptMessage.getContent());
 				accepted = PROPOSAL_ACCEPTED;
 				receivedResponse = true;
@@ -357,7 +356,7 @@ public class CuratorAgent extends Agent {
 				System.out.print(getName() + ": My artifact stock: ");
 				for (Artifact a : artifacts)
 					System.out.print(a.getName() + ", "); System.out.print("\n");
-			} else if(rejectMessage != null) {
+			} else if(rejectMessage != null && rejectMessage.getConversationId().equals(convID)) {
 				//System.out.println(getName() + ": My proposal was rejected... Content: " + rejectMessage.getContent());
 				accepted = PROPOSAL_REJECTED;
 				receivedResponse = true;
@@ -381,7 +380,10 @@ public class CuratorAgent extends Agent {
 	private class AuctionEnded extends OneShotBehaviour {
 		@Override
 		public void action() {
-			
+			int i=0;
+			while(receive() != null)							//Clear the message queue. TODO: Remove if this causes problems...
+				i++;
+//			System.out.println(getName() + ": Cleared " + i + " messages from queue.");
 		}
 	}
 	

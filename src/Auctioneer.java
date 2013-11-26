@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Vector;
 
@@ -28,6 +29,7 @@ public class Auctioneer extends Agent{
 	private Vector<ACLMessage> receivedProposals;
 	private ArrayList<Artifact> artifacts;
 	private Artifact item;
+	private String convID = "";
 	
 	private final int startPrice = 6000;
 	private final int priceLimit = 1000;
@@ -53,7 +55,7 @@ public class Auctioneer extends Agent{
 		buyers = getBuyers();
 		receivedProposals = new Vector<>();
 		
-		addBehaviour(new SpawnAuction(this, 1000));
+		addBehaviour(new SpawnAuction(this, 2000));
 	}
 	
 	private class SpawnAuction extends TickerBehaviour {
@@ -62,19 +64,22 @@ public class Auctioneer extends Agent{
 		}
 		@Override
 		protected void onTick() {
-			FSMBehaviour auctionLoop = new FSMBehaviour(myAgent);
-			auctionLoop.registerFirstState(new StartAuction(), STATE_START_AUCTION);
-			auctionLoop.registerState(new CallForProposals(myAgent), STATE_CFP);
-			auctionLoop.registerState(new ReceiveProposals(myAgent), STATE_RECEIVE_PROPOSALS);
-			auctionLoop.registerState(new HandleProposals(), STATE_HANDLE_PROPOSALS);
-			auctionLoop.registerLastState(new TerminateAuction(), STATE_NO_BIDS);
-			
-			auctionLoop.registerDefaultTransition(STATE_START_AUCTION, STATE_CFP);
-			auctionLoop.registerDefaultTransition(STATE_CFP, STATE_RECEIVE_PROPOSALS);
-			auctionLoop.registerDefaultTransition(STATE_RECEIVE_PROPOSALS, STATE_HANDLE_PROPOSALS);
-			auctionLoop.registerTransition(STATE_HANDLE_PROPOSALS, STATE_CFP, CONTINUE_AUCTION);
-			auctionLoop.registerTransition(STATE_HANDLE_PROPOSALS, STATE_NO_BIDS, TERMINATE_AUCTION);
-			addBehaviour(auctionLoop);
+			if(artifacts.size() > 0) {
+				FSMBehaviour auctionLoop = new FSMBehaviour(myAgent);
+				auctionLoop.registerFirstState(new StartAuction(), STATE_START_AUCTION);
+				auctionLoop.registerState(new CallForProposals(myAgent), STATE_CFP);
+				auctionLoop.registerState(new ReceiveProposals(myAgent), STATE_RECEIVE_PROPOSALS);
+				auctionLoop.registerState(new HandleProposals(), STATE_HANDLE_PROPOSALS);
+				auctionLoop.registerLastState(new TerminateAuction(), STATE_NO_BIDS);
+				
+				auctionLoop.registerDefaultTransition(STATE_START_AUCTION, STATE_CFP);
+				auctionLoop.registerDefaultTransition(STATE_CFP, STATE_RECEIVE_PROPOSALS);
+				auctionLoop.registerDefaultTransition(STATE_RECEIVE_PROPOSALS, STATE_HANDLE_PROPOSALS);
+				auctionLoop.registerTransition(STATE_HANDLE_PROPOSALS, STATE_CFP, CONTINUE_AUCTION);
+				auctionLoop.registerTransition(STATE_HANDLE_PROPOSALS, STATE_NO_BIDS, TERMINATE_AUCTION);
+				addBehaviour(auctionLoop);
+			} else
+				System.out.println("Nothing left to sell...");
 		}
 	}
 	
@@ -137,11 +142,14 @@ public class Auctioneer extends Agent{
 			initMessage.addReplyTo(myAgent.getAID());
 			initMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 			initMessage.setContent("inform-start-of-auction");
+			convID = ""+(new Random()).nextInt();
+			initMessage.setConversationId(convID);
+			buyers = getBuyers();
 			for(AID aid : buyers)
 				initMessage.addReceiver(aid);
+			System.out.println("\n" + getName() + ": Auction started. ITEM: " + item.getName());
 			send(initMessage);
 			
-			System.out.println("\n" + getName() + ": Auction started. ITEM: " + item.getName());
 		}
 	}
 	
@@ -157,14 +165,15 @@ public class Auctioneer extends Agent{
 			message.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 			message.setSender(myAgent.getAID());
 			message.addReplyTo(myAgent.getAID());
+			message.setConversationId(convID);
 			try {message.setContentObject(item);} catch (IOException e) {e.printStackTrace();} //send artifact
 			for(AID aid : buyers)
 				message.addReceiver(aid);
 			
+			System.out.println(getName() + ": CFP sent to " + buyers.size() + " agents. PRICE: " + item.getPrice());
 			if(buyers.size() > 0)
 				send(message);
 			
-			System.out.println(getName() + ": CFP sent to " + buyers.size() + " agents. PRICE: " + item.getPrice());
 		}
 	}
 	
@@ -182,7 +191,7 @@ public class Auctioneer extends Agent{
 		public void action() {
 			allProposalsHandled = false;		//TODO Refactor...
 			ACLMessage message = receive();
-			if(message != null) {
+			if(message != null && message.getConversationId().equals(convID)) {
 				switch(message.getPerformative()) {
 					case ACLMessage.PROPOSE:
 						receivedProposals.add(message);
@@ -228,6 +237,7 @@ public class Auctioneer extends Agent{
 				winMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 				winMessage.addReceiver(winner);
 				winMessage.setContent("you won!");
+				winMessage.setConversationId(convID);
 				send(winMessage);
 				artifacts.remove(item);
 				
@@ -260,6 +270,7 @@ public class Auctioneer extends Agent{
 			rejectMessage.setSender(myAgent.getAID());
 			rejectMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 			rejectMessage.setContent("I rejected your proposal...");
+			rejectMessage.setConversationId(convID);
 			for(AID buyer : buyers)
 				if(buyer != winner)
 					rejectMessage.addReceiver(buyer);
@@ -280,6 +291,7 @@ public class Auctioneer extends Agent{
 			noBidsMessage.setSender(myAgent.getAID());
 			noBidsMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 			noBidsMessage.setContent("no-bids");
+			noBidsMessage.setConversationId(convID);
 			for(AID aid : buyers)
 				noBidsMessage.addReceiver(aid);
 			send(noBidsMessage);
