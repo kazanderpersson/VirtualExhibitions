@@ -42,9 +42,8 @@ public class CuratorAgent extends Agent {
 	
 	public static final String CURATOR_NAME = "curator";
 	private ArrayList<Artifact> artifacts = new ArrayList<>();
+	private Artifact receivedItem;
 	
-	private String item;
-	private int price;
 	private AID marketAgent;
 	
 	private final int PROPOSAL_ACCEPTED = 1;
@@ -52,8 +51,29 @@ public class CuratorAgent extends Agent {
 	private final int CFP_RECEIVED = 2;
 	private final int NO_BIDS = -2;
 	
+	private ArrayList<String> interests = new ArrayList<String>();
+	private ArrayList<Integer> priorityInterests = new ArrayList<Integer>();
+	private int money = 3000;
+
 	@Override
 	protected void setup() {
+		try {Thread.sleep((int)(Math.random()*500));} catch (InterruptedException e) {} //spread console output
+		//curator interest setup
+		int numberOfInterests = 2+((int)(Math.random()*8)); //2-9
+		int i = 0;
+		int randomGenre;
+		while (i < numberOfInterests) {
+			randomGenre = (int)(Math.random()*Auctioneer.genres.length);
+			if (!interests.contains(Auctioneer.genres[randomGenre])) { //already taken?
+				interests.add(Auctioneer.genres[randomGenre]);
+				priorityInterests.add(1+((int)(Math.random()*5)));
+				i++;
+			}
+		}
+		System.out.print(getName() + ": My interests & priority: ");
+		for (int j=0; j<interests.size(); j++)
+			System.out.print(interests.get(j) + "(" + priorityInterests.get(j) + "), "); System.out.print("\n");
+		
 		publishServices();
 		
 		MessageTemplate mt = AchieveREResponder.createMessageTemplate(FIPANames.InteractionProtocol.FIPA_REQUEST);
@@ -62,6 +82,7 @@ public class CuratorAgent extends Agent {
 //		addBehaviour(new WaitForAuction());
 //		addBehaviour(new HandleCFP());
 		addBehaviour(new AuctionFSM(this));
+		addBehaviour(new Income(this, 5000)); //every 5th auction
 	}
 	
 	@Override
@@ -103,7 +124,7 @@ public class CuratorAgent extends Agent {
 		dfd.addServices(buyingArtifacts);
 		try {
 			DFService.register(this, dfd);
-			System.out.println(getName() + ": Successfully registered services.");
+			//System.out.println(getName() + ": Successfully registered services.");
 		} catch (FIPAException e) {
 			e.printStackTrace();
 		}
@@ -112,10 +133,10 @@ public class CuratorAgent extends Agent {
 	
 	private class AuctionFSM extends FSMBehaviour {
 		public AuctionFSM(Agent agent) {
-			String INIT = "init";
-			String HANDLE_CFP = "hcfp";
-			String PROPOSAL_RESPONSE = "presopnse";
-			String AUCTION_ENDED = "ended";
+			final String INIT = "init";
+			final String HANDLE_CFP = "hcfp";
+			final String PROPOSAL_RESPONSE = "presopnse";
+			final String AUCTION_ENDED = "ended";
 			
 			registerFirstState(new WaitForAuction(), INIT);
 			registerState(new HandleCFP(), HANDLE_CFP);
@@ -228,7 +249,7 @@ public class CuratorAgent extends Agent {
 			if(message != null) {
 				marketAgent = message.getSender();
 				newAuctionStarted = true;
-				System.out.println(getName() + ": Received Auction start message!");
+				//System.out.println(getName() + ": Received Auction start message!");
 			} else
 				block();
 		}
@@ -253,29 +274,30 @@ public class CuratorAgent extends Agent {
 			ACLMessage cfp = receive(template_cfp);
 			ACLMessage nobids = receive(template_nobids);
 			if(cfp != null) { 		//CFP received
-				System.out.println(getName() + ": Received CFP - " + cfp.getContent());
-				try {
-					item = cfp.getContent().split(" ")[0];
-					price = Integer.parseInt(cfp.getContent().split(" ")[1]);
+				try { 
+					receivedItem = (Artifact)cfp.getContentObject();
+					//System.out.println(getName() + ": Received CFP - " + receivedItem.getName());
 					
 					ACLMessage proposal = new ACLMessage(ACLMessage.PROPOSE);
 					proposal.addReceiver(marketAgent);
-					boolean accept = acceptOffer(item, price);
+					boolean accept = acceptOffer(receivedItem);
 					if(accept)
 						proposal.setContent("yes");
 					else
 						proposal.setContent("no");
 					send(proposal);
-					System.out.println(getName() + ": Proposal sent to Auctioneer. Proposal= " + proposal.getContent());
-				} catch(Exception e) {
+					//System.out.println(getName() + ": Proposal sent to Auctioneer. Proposal= " + proposal.getContent());
+				}
+				catch(UnreadableException e) {
 					ACLMessage notUnderstood = new ACLMessage(ACLMessage.NOT_UNDERSTOOD);
 					notUnderstood.addReceiver(marketAgent);
 					send(notUnderstood);
 				}
+				
 				informed = true;
 				status = CFP_RECEIVED;
 			} else if(nobids != null) {
-				System.out.println(getName() + ": No-bids received...");
+				//System.out.println(getName() + ": No-bids received...");
 				informed = true;
 				status = NO_BIDS;
 			} else
@@ -292,10 +314,25 @@ public class CuratorAgent extends Agent {
 			return status;
 		}
 		
-		private boolean acceptOffer(String item, int price) { //task 2, bidding strategy
-			Random rand = new Random();
-			int a = rand.nextInt(100);
-			return a > 90;
+		private boolean acceptOffer(Artifact item) { //task 2, bidding strategy
+			ArrayList<Integer> genresInCommon = new ArrayList<Integer>();
+			for (int i=0; i < interests.size(); i++)
+				if (item.getGenre().contains(interests.get(i))) //interested in a genre item has
+					genresInCommon.add(priorityInterests.get(i));
+				
+				if (genresInCommon.size() > 0) {
+					int prioritySum = 0;
+					for (int sum : genresInCommon)
+						prioritySum += sum;
+					prioritySum /= genresInCommon.size(); //average howInterests points taken all interests/genre match into consideration
+					
+						if ((prioritySum*1000 >= item.getPrice()) && (item.getPrice() < ((int)(money*0.7)))) //willing to pay the current price? 1000 for every interets point and dont spend more than 70% money
+							return true;
+						else
+							return false;
+				}
+				else
+					return false;
 		}
 	}
 
@@ -313,11 +350,15 @@ public class CuratorAgent extends Agent {
 			ACLMessage rejectMessage = receive(template_rejected);
 			
 			if(acceptMessage != null) {
-				System.out.println(getName() + ": My proposal was accepted! Content: " + acceptMessage.getContent());
+				//System.out.println(getName() + ": My proposal was accepted! Content: " + acceptMessage.getContent());
 				accepted = PROPOSAL_ACCEPTED;
 				receivedResponse = true;
+				artifacts.add(receivedItem);
+				System.out.print(getName() + ": My artifact stock: ");
+				for (Artifact a : artifacts)
+					System.out.print(a.getName() + ", "); System.out.print("\n");
 			} else if(rejectMessage != null) {
-				System.out.println(getName() + ": My proposal was rejected... Content: " + rejectMessage.getContent());
+				//System.out.println(getName() + ": My proposal was rejected... Content: " + rejectMessage.getContent());
 				accepted = PROPOSAL_REJECTED;
 				receivedResponse = true;
 			}
@@ -341,6 +382,18 @@ public class CuratorAgent extends Agent {
 		@Override
 		public void action() {
 			
+		}
+	}
+	
+	private class Income extends TickerBehaviour { //randomly give curator more money
+		public Income(Agent a, long period) {
+			super(a, period);
+		}
+		@Override
+		protected void onTick() {
+			int income = 1+((int)(Math.random()*10000)); //1-10000
+			money += income;
+			System.out.println(getName() + ": Received income: " + income + ":- Total: " + money + ":-");
 		}
 	}
 }

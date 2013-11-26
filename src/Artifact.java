@@ -8,7 +8,7 @@ import java.util.ArrayList;
  *	This is a wrapper for all the artifacts that can be stored in a museum, and maintained by a Curator.
  */
 public class Artifact implements Serializable {
-	private static final long serialVersionUID = 3089947323146489985L;
+	private static final long serialVersionUID = 2L;
 	
 	private int id;
 	private String name;
@@ -17,6 +17,7 @@ public class Artifact implements Serializable {
 	private String type;
 	private String description;
 	private ArrayList<String> genres;
+	private int price;
 	
 	public Artifact(int id, String name, String creator, String creationDate, String type, String description, ArrayList<String> genres) {
 		this.id = id;
@@ -54,6 +55,14 @@ public class Artifact implements Serializable {
 
 	public ArrayList<String> getGenre() {
 		return genres;
+	}
+	
+	public void setPrice(int price) {
+		this.price = price;
+	}
+	
+	public int getPrice() {
+		return price;
 	}
 	
 	@Override

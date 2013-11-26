@@ -71,7 +71,7 @@ public class ProfilerAgent extends Agent {
 			String[] input = new String[5];
 			for (int i=0; i<input.length; i++) { //read in the chosen profile from file
 				input[i] = sc.nextLine();
-				System.out.println(input[i]); //(print which profile that was created)
+				//System.out.println(input[i]); //(print which profile that was created)
 			}
 			sc.close();
 			profile = new Profile(pickRandomProfile+1, input[0], input[1], Integer.parseInt(input[2]), input[3], new ArrayList<String>(Arrays.asList(input[4].split(", "))));
@@ -116,7 +116,7 @@ public class ProfilerAgent extends Agent {
 				if(result.length>0) {
 					AID receiver = result[0].getName();
 					msg.addReceiver(receiver);
-					System.out.println("Found a tour guide: " + receiver.getName());
+					//System.out.println("Found a tour guide: " + receiver.getName());
 				}
 			} catch (FIPAException e1) {
 				e1.printStackTrace();
@@ -127,13 +127,13 @@ public class ProfilerAgent extends Agent {
 			
 			try {
 				msg.setContentObject(profile);
-				System.out.println(getName() + ": Successfully added profile with name: " + profile.getName() + " to a message.");
+				//System.out.println(getName() + ": Successfully added profile with name: " + profile.getName() + " to a message.");
 			} catch (IOException e) {
 				msg.setContent(profile.getName());		//......
 			}
 			msg.setOntology("get-tour-guide");
 			send(msg);
-			System.out.println(myAgent.getAID().getName() + ": Profile sent to tour agent.");
+			//System.out.println(myAgent.getAID().getName() + ": Profile sent to tour agent.");
 		}
 	}
 	
@@ -152,7 +152,7 @@ public class ProfilerAgent extends Agent {
 			if(msg != null && msg.getOntology().equals("tour-ids")) {		//TODO hmmm...... NullPointerException
 				try {
 					itemIDs = (ArrayList<Integer>) msg.getContentObject();
-					System.out.println(myAgent.getAID().getName() + ": " + itemIDs.size() + " Item ID:s received.");
+					//System.out.println(myAgent.getAID().getName() + ": " + itemIDs.size() + " Item ID:s received.");
 				} catch (UnreadableException e) {
 					System.err.println("Received tour-ids, but can't read them! Aborting...");
 					myAgent.doDelete();
@@ -202,7 +202,7 @@ public class ProfilerAgent extends Agent {
 //					AID receiver = result[0].getName();
 //					msg.addReceiver(receiver);
 					curator = result[0].getName();
-					System.out.println(getName() + ": Found a curator: " + curator.getName());
+					//System.out.println(getName() + ": Found a curator: " + curator.getName());
 				} else
 					curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
 			} catch (FIPAException e1) {
@@ -223,7 +223,7 @@ public class ProfilerAgent extends Agent {
 				msg.setContent(profile.getName());		//......
 			}
 			msg.setOntology("get-item-information");
-			System.out.println(myAgent.getAID().getName() + ": Message prepared to be sent to Curator.");
+			//System.out.println(myAgent.getAID().getName() + ": Message prepared to be sent to Curator.");
 			return super.prepareRequest(msg);
 		}
 		
@@ -232,10 +232,10 @@ public class ProfilerAgent extends Agent {
 			if(msg != null && msg.getOntology().equals("tour-info")) {		//TODO hmmm......
 				try {
 					tourArtifacts = (ArrayList<Artifact>) msg.getContentObject();
-					System.out.println(myAgent.getAID().getName() + ": Received " + tourArtifacts.size() + " items from curator.");
-					System.out.println("The items are: ");
-					for(Artifact a : tourArtifacts)
-						System.out.println(a.getName());
+					//System.out.println(myAgent.getAID().getName() + ": Received " + tourArtifacts.size() + " items from curator.");
+					//System.out.println("The items are: ");
+					//for(Artifact a : tourArtifacts)
+						//System.out.println(a.getName());
 				} catch (UnreadableException e) {
 					System.out.println("Received artifacts, but can't read them! Aborting...");
 					myAgent.doDelete();

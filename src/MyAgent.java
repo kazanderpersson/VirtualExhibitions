@@ -9,6 +9,7 @@ import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
+import jade.lang.acl.UnreadableException;
 import jade.proto.AchieveREResponder;
 import jade.proto.SimpleAchieveREResponder;
 import jade.proto.states.MsgReceiver;
@@ -49,12 +50,16 @@ public class MyAgent extends Agent {
 		
 	protected ACLMessage prepareResultNotification(ACLMessage request, ACLMessage response) {
 			ACLMessage informDone = request.createReply();
-			if (request.getContent().equals("what is the time?")) {
+			//if (request.getContent().equals("what is the time?")) {
 				informDone.setPerformative(ACLMessage.INFORM);
 				informDone.setContent(Calendar.getInstance().getTime().toString());
-			}
-			else
-				informDone.setPerformative(ACLMessage.NOT_UNDERSTOOD);
+				Artifact a = null;
+				 try {a = (Artifact)request.getContentObject();} catch (UnreadableException e) {e.printStackTrace();}
+				 System.out.println(a.getName());
+			//}
+			//else
+			//	informDone.setPerformative(ACLMessage.NOT_UNDERSTOOD);
+			
 			return informDone;
 			
 		}
@@ -65,7 +70,7 @@ public class MyAgent extends Agent {
 		
 	}
 	
-	private class ListenBehaviour extends CyclicBehaviour {
+	/*private class ListenBehaviour extends CyclicBehaviour {
 
 		@Override
 		public void action() {
@@ -99,6 +104,6 @@ public class MyAgent extends Agent {
 			
 		}
 		
-	}
+	}*/
 
 }

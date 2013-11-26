@@ -11,6 +11,7 @@ import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SimpleBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPANames;
@@ -26,11 +27,11 @@ public class Auctioneer extends Agent{
 	private ArrayList<AID> buyers = new ArrayList<>();
 	private Vector<ACLMessage> receivedProposals;
 	private ArrayList<Artifact> artifacts;
+	private Artifact item;
 	
-	private String item = "test_item_1";
-	private int price = 100;
-	private int priceLimit = 50;
-	private int priceReduction = 10;
+	private final int startPrice = 6000;
+	private final int priceLimit = 1000;
+	private final int priceReduction = 1000;
 	
 	private final String STATE_START_AUCTION = "start";
 	private final String STATE_CFP = "cfp";
@@ -41,39 +42,40 @@ public class Auctioneer extends Agent{
 	private final int CONTINUE_AUCTION = 1;
 	private final int TERMINATE_AUCTION = -1;
 	
+	public static final String[] genres = {"geology", "animals", "religon", "history", "sport", "graffiti", "pop art", "surrealism", "cubism", "realism", "romanticism", "19th century", "20th century", "21th century"};
 	
 	@Override
 	protected void setup() {
 		initArtifacts();
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		item = "test_item_1";
-		price = 100;
-		priceLimit = 50;
-		priceReduction = 10;
+		try {Thread.sleep(1500);} catch (InterruptedException e) {}
+
 //		buyers = new ArrayList<>();
 		buyers = getBuyers();
 		receivedProposals = new Vector<>();
 		
-		FSMBehaviour fsm = new FSMBehaviour(this);
-		fsm.registerFirstState(new StartAuction(), STATE_START_AUCTION);
-		fsm.registerState(new CallForProposals(this), STATE_CFP);
-		fsm.registerState(new ReceiveProposals(this), STATE_RECEIVE_PROPOSALS);
-		fsm.registerState(new HandleProposals(), STATE_HANDLE_PROPOSALS);
-		fsm.registerLastState(new TerminateAuction(), STATE_NO_BIDS);
-		
-		fsm.registerDefaultTransition(STATE_START_AUCTION, STATE_CFP);
-		fsm.registerDefaultTransition(STATE_CFP, STATE_RECEIVE_PROPOSALS);
-		fsm.registerDefaultTransition(STATE_RECEIVE_PROPOSALS, STATE_HANDLE_PROPOSALS);
-		fsm.registerTransition(STATE_HANDLE_PROPOSALS, STATE_CFP, CONTINUE_AUCTION);
-		fsm.registerTransition(STATE_HANDLE_PROPOSALS, STATE_NO_BIDS, TERMINATE_AUCTION);
-		
-		addBehaviour(fsm);
+		addBehaviour(new SpawnAuction(this, 1000));
+	}
+	
+	private class SpawnAuction extends TickerBehaviour {
+		public SpawnAuction(Agent a, long period) {
+			super(a, period);
+		}
+		@Override
+		protected void onTick() {
+			FSMBehaviour auctionLoop = new FSMBehaviour(myAgent);
+			auctionLoop.registerFirstState(new StartAuction(), STATE_START_AUCTION);
+			auctionLoop.registerState(new CallForProposals(myAgent), STATE_CFP);
+			auctionLoop.registerState(new ReceiveProposals(myAgent), STATE_RECEIVE_PROPOSALS);
+			auctionLoop.registerState(new HandleProposals(), STATE_HANDLE_PROPOSALS);
+			auctionLoop.registerLastState(new TerminateAuction(), STATE_NO_BIDS);
+			
+			auctionLoop.registerDefaultTransition(STATE_START_AUCTION, STATE_CFP);
+			auctionLoop.registerDefaultTransition(STATE_CFP, STATE_RECEIVE_PROPOSALS);
+			auctionLoop.registerDefaultTransition(STATE_RECEIVE_PROPOSALS, STATE_HANDLE_PROPOSALS);
+			auctionLoop.registerTransition(STATE_HANDLE_PROPOSALS, STATE_CFP, CONTINUE_AUCTION);
+			auctionLoop.registerTransition(STATE_HANDLE_PROPOSALS, STATE_NO_BIDS, TERMINATE_AUCTION);
+			addBehaviour(auctionLoop);
+		}
 	}
 	
 	private ArrayList<AID> getBuyers() {
@@ -90,7 +92,7 @@ public class Auctioneer extends Agent{
 			DFAgentDescription[] result = DFService.searchUntilFound(this, getDefaultDF(), template, null, 20000);
 			for(DFAgentDescription r : result) {
 				b.add(r.getName());
-				System.out.println("Added a buyer");
+				//System.out.println("Added a buyer");
 			}
 		} catch (FIPAException e1) {
 			e1.printStackTrace();
@@ -126,6 +128,10 @@ public class Auctioneer extends Agent{
 	private class StartAuction extends OneShotBehaviour {
 		@Override
 		public void action() {
+			int randomArtifact = (int)(Math.random()*artifacts.size());
+			artifacts.get(randomArtifact).setPrice(startPrice);
+			item = artifacts.get(randomArtifact); //randomly choose and actuion out an available artifact
+			
 			ACLMessage initMessage = new ACLMessage(ACLMessage.INFORM);
 			initMessage.setSender(myAgent.getAID());
 			initMessage.addReplyTo(myAgent.getAID());
@@ -135,7 +141,7 @@ public class Auctioneer extends Agent{
 				initMessage.addReceiver(aid);
 			send(initMessage);
 			
-			System.out.println(getName() + ": Auction started.");
+			System.out.println("\n" + getName() + ": Auction started. ITEM: " + item.getName());
 		}
 	}
 	
@@ -151,14 +157,14 @@ public class Auctioneer extends Agent{
 			message.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 			message.setSender(myAgent.getAID());
 			message.addReplyTo(myAgent.getAID());
-			message.setContent(item + " " + price);		//TODO: Temporary
+			try {message.setContentObject(item);} catch (IOException e) {e.printStackTrace();} //send artifact
 			for(AID aid : buyers)
 				message.addReceiver(aid);
 			
 			if(buyers.size() > 0)
 				send(message);
 			
-			System.out.println(getName() + ": CFP sent to " + buyers.size() + " agents. Item: " + item + " price: " + price);
+			System.out.println(getName() + ": CFP sent to " + buyers.size() + " agents. PRICE: " + item.getPrice());
 		}
 	}
 	
@@ -169,7 +175,7 @@ public class Auctioneer extends Agent{
 		public ReceiveProposals(Agent a) {
 			super(a);
 			receivedProposals = new Vector<>();
-			System.out.println(getName() + ": Waiting for proposals...");
+			//System.out.println(getName() + ": Waiting for proposals...");
 		}
 		
 		@Override
@@ -182,8 +188,8 @@ public class Auctioneer extends Agent{
 						receivedProposals.add(message);
 						allProposalsHandled = receivedProposals.size() == buyers.size();
 						System.out.println(getName() + ": Received proposal from " + message.getSender().getName() + ": " + message.getContent());
-						System.out.println("Received Proposals: " + receivedProposals.size());
-						System.out.println("Buyers: " + buyers.size());
+						//System.out.println("Received Proposals: " + receivedProposals.size());
+						//System.out.println("Buyers: " + buyers.size());
 						break;
 					case ACLMessage.NOT_UNDERSTOOD:
 						System.out.println(getName() + ": Received \"NOT_UNDERSTOOD\"...");
@@ -203,12 +209,11 @@ public class Auctioneer extends Agent{
 	}
 	
 	private class HandleProposals extends OneShotBehaviour {
-		
 		private int status = 0;
 		
 		@Override
 		public void action() {
-			System.out.println(getName() + ": Handling proposals...");
+			//System.out.println(getName() + ": Handling proposals...");
 			
 			Vector<AID> interestedBuyers = new Vector<>();
 			for(ACLMessage msg : receivedProposals)
@@ -217,13 +222,15 @@ public class Auctioneer extends Agent{
 			
 			AID winner = new AID();
 			if(interestedBuyers.size() > 0) {				
-				winner = interestedBuyers.get(0);
+				winner = interestedBuyers.get(0); //if multiple buyers bid at same price, take the first one who responded(?)
 				ACLMessage winMessage = new ACLMessage(ACLMessage.ACCEPT_PROPOSAL);
 				winMessage.setSender(myAgent.getAID());
 				winMessage.setProtocol(FIPANames.InteractionProtocol.FIPA_DUTCH_AUCTION);
 				winMessage.addReceiver(winner);
-				winMessage.setContent("You won!");
+				winMessage.setContent("you won!");
 				send(winMessage);
+				artifacts.remove(item);
+				
 //				interestedBuyers.remove(0);
 				
 //				ACLMessage rejectMessage = new ACLMessage(ACLMessage.REJECT_PROPOSAL);
@@ -236,16 +243,15 @@ public class Auctioneer extends Agent{
 //				if(interestedBuyers.size() > 0)
 //					send(rejectMessage);
 				status = TERMINATE_AUCTION;
-				System.out.println(getName() + ": Somebody bought the item! Time to terminate..");
+				System.out.println(getName() + ": SOLD TO " + winner.getName() + "! Auction terminated");
 			} else {
-				price -= priceReduction;
-				boolean priceLimitReached = price <= priceLimit;
-				if(priceLimitReached) {
+				item.setPrice(item.getPrice() - priceReduction);
+				if(item.getPrice() <= priceLimit) {
 					status = TERMINATE_AUCTION;
-					System.out.println(getName() + ": Price limit reached... Time to terminate..");
+					System.out.println(getName() + ": NO BUY! Price limit reached, auction terminated");
 				}
 				else {
-					System.out.println(getName() + ": Price was lowered annd auction will continue.");
+					System.out.println(getName() + ": NO BUY! Price was lowered and auction continue.");
 					status = CONTINUE_AUCTION;
 				}
 			}
@@ -277,7 +283,7 @@ public class Auctioneer extends Agent{
 			for(AID aid : buyers)
 				noBidsMessage.addReceiver(aid);
 			send(noBidsMessage);
-			System.out.println(getName() + ": No-bids sent, auction is terminating.");
+			//System.out.println(getName() + ": No-bids sent, auction is terminating.");
 		}
 	}
 }

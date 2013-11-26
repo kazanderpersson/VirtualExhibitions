@@ -1,3 +1,6 @@
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 import jade.core.AID;
@@ -107,8 +110,8 @@ public class TestAgent extends Agent {
 			//msg.setContent("yadayada");
 			//System.out.println("yadayada");
 			
-			if (msg.getContent().equals("what is the time?"))
-				System.out.println("Sending: what is the time?");
+			//if (msg.getContent().equals("what is the time?"))
+			//	System.out.println("Sending: what is the time?");
 			return super.prepareRequest(msg);
 		}
 		
@@ -129,11 +132,12 @@ public class TestAgent extends Agent {
 		}
 		@Override
 		public void onTick() {
-			
+			Artifact a = new Artifact(1, "testartifact23", "kaz", "1943", "film", "artifact for testing serialization", new ArrayList<String>());
 			ACLMessage request = new ACLMessage(ACLMessage.REQUEST);
 			request.setProtocol(FIPANames.InteractionProtocol.FIPA_REQUEST);
 			request.addReceiver(new AID("recieveagent", AID.ISLOCALNAME));
-			request.setContent("what is the time?");
+			//request.setContent("what is the time?");
+			try {request.setContentObject(a);} catch (IOException e) {e.printStackTrace();}
 			myAgent.addBehaviour(new SimpleAchieveREInitiatorImpl(myAgent, request));
 			//myAgent.addBehaviour(b);
 			/*ACLMessage msg = new ACLMessage(ACLMessage.INFORM);

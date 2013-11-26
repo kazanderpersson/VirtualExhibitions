@@ -135,7 +135,7 @@ public class TourGuideAgent extends Agent{
 //					AID receiver = result[0].getName();
 //					msg.addReceiver(receiver);
 					curator = result[0].getName();
-					System.out.println(getName() + ": Found a curator: " + curator.getName());
+					//System.out.println(getName() + ": Found a curator: " + curator.getName());
 				} else
 					curator = new AID(CuratorAgent.CURATOR_NAME, AID.ISLOCALNAME);
 			} catch (FIPAException e1) {
@@ -157,7 +157,7 @@ public class TourGuideAgent extends Agent{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			System.out.println(getName() + ": Request prepared. (and sent?)");
+			//System.out.println(getName() + ": Request prepared. (and sent?)");
 			return msg;
 		}
 		
@@ -169,7 +169,7 @@ public class TourGuideAgent extends Agent{
 				} catch (UnreadableException e) {
 					e.printStackTrace();
 				}
-				System.out.println(getName() + ": Received IDs from Curator.");
+				//System.out.println(getName() + ": Received IDs from Curator.");
 			}
 		}
 		
@@ -208,7 +208,7 @@ public class TourGuideAgent extends Agent{
 				reply.setOntology("tour-ids");
 				reply.setContentObject(idsToSend);
 				send(reply);
-				System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
+				//System.out.println("Request was handled and a response have been sent to the Profiler. Number of IDs sent = " + idsToSend.size());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

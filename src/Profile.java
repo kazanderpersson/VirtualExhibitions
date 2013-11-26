@@ -9,7 +9,7 @@ import java.util.ArrayList;
  *
  */
 public class Profile implements Serializable{
-	private static final long serialVersionUID = -9013238777426582211L;
+	private static final long serialVersionUID = 1L;
 	
 	private int id;
 	private String name;
