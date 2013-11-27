@@ -21,6 +21,10 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 
 /**
+ * 	The Auctioneer/MarketAgent will start a Dutch Auction with all available Curators.
+ * 		---------------------------------------------------------------------------------
+ * 		|					--------------------------------------------------------	|
+ * 		V					V														|	|
  * StartAuction -> CallForProposals -> ReceiveProposals -> HandleProposals -> NoBids/CallForProposals....
  */
 public class Auctioneer extends Agent{
@@ -65,6 +69,9 @@ public class Auctioneer extends Agent{
 		addBehaviour(new SpawnAuction(this, 1000)); //auction every second
 	}
 	
+	/**
+	 * Periodically a new Auction FSM
+	 */
 	private class SpawnAuction extends TickerBehaviour {
 		public SpawnAuction(Agent a, long period) {
 			super(a, period);
@@ -90,6 +97,9 @@ public class Auctioneer extends Agent{
 		}
 	}
 	
+	/**
+	 * @return a list of potential buyers (Curators) from the DF service.
+	 */
 	private ArrayList<AID> getBuyers() {
 		/**********************************************/
 		/******  Look for a Curator in the DF  *****/
@@ -137,6 +147,9 @@ public class Auctioneer extends Agent{
 		} catch (IOException e) {}
 	}
 	
+	/**
+	 *	The first state of the Auction FSM, send an inform-start-of-auction message.
+	 */
 	private class StartAuction extends OneShotBehaviour {
 		@Override
 		public void action() {
@@ -159,6 +172,9 @@ public class Auctioneer extends Agent{
 		}
 	}
 	
+	/**
+	 *	Send the CFP-message.
+	 */
 	private class CallForProposals extends OneShotBehaviour {
 		
 		public CallForProposals(Agent a) {
@@ -182,6 +198,9 @@ public class Auctioneer extends Agent{
 		}
 	}
 	
+	/**
+	 *	Wait for proposals from all potential buyers. If a not-understood is received, something is wrong and we should terminate.
+	 */
 	private class ReceiveProposals extends SimpleBehaviour {
 		private boolean allProposalsHandled = false;
 		
@@ -221,6 +240,9 @@ public class Auctioneer extends Agent{
 		}
 	}
 	
+	/**
+	 *	Handle the proposals, elect a winner and go to the end state, or the CFP-state if nobody wanted the item at the current price.
+	 */
 	private class HandleProposals extends OneShotBehaviour {
 		private int status = 0;
 		
@@ -278,6 +300,9 @@ public class Auctioneer extends Agent{
 		}
 	}
 	
+	/**
+	 *	The auction has ended, send no-bids.
+	 */
 	private class TerminateAuction extends OneShotBehaviour {
 		@Override
 		public void action() {

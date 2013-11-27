@@ -122,6 +122,16 @@ public class CuratorAgent extends Agent {
 		/****************************************************************/
 	}
 	
+	
+	/**
+	 *	The FSM behaviour for participating in an auction.
+	 *		_________________________________auction has ended__________________________
+	 *		|																			|
+	 *		|					  ______________________________no-bids______________	|
+	 *		|					  |	_____rejected________							|	|
+	 *		V					  | V					|							V	|
+	 *	WaitForAuction	-start->  HandleCFP	 -->	HandleResponse	-accepted->    AuctionEnded
+	 */
 	private class AuctionFSM extends FSMBehaviour {
 		public AuctionFSM(Agent agent) {
 			final String INIT = "init";
@@ -227,6 +237,9 @@ public class CuratorAgent extends Agent {
 		}		
 	}
 
+	/**
+	 *	Wait for a new auction to start.
+	 */
 	private class WaitForAuction extends SimpleBehaviour {
 		
 		private boolean newAuctionStarted = false;
@@ -252,6 +265,9 @@ public class CuratorAgent extends Agent {
 		}
 	}
 
+	/**
+	 *	Wait for a CFP-message and reply with a proposal.
+	 */
 	private class HandleCFP extends SimpleBehaviour {
 		private boolean informed = false;
 		private int status = 0;
@@ -328,6 +344,9 @@ public class CuratorAgent extends Agent {
 		}
 	}
 
+	/**
+	 *	Wait for the Auctioneer to handle the proposal, and receive its' response (accept/reject).
+	 */
 	private class HandleResponse extends SimpleBehaviour {
 		private int accepted = 0;
 		private boolean receivedResponse = false;
@@ -370,6 +389,9 @@ public class CuratorAgent extends Agent {
 		}
 	}
 
+	/**
+	 *	The final state of the auction, clear the message queue (may not be necessary, and may cause errors!)
+	 */
 	private class AuctionEnded extends OneShotBehaviour {
 		@Override
 		public void action() {
@@ -380,6 +402,9 @@ public class CuratorAgent extends Agent {
 		}
 	}
 	
+	/**
+	 *	Refill our stack of money, so that we can buy new stuff!
+	 */
 	private class Income extends TickerBehaviour { //randomly give curator more money
 		public Income(Agent a, long period) {
 			super(a, period);
