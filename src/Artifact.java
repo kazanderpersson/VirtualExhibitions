@@ -72,4 +72,9 @@ public class Artifact implements Serializable {
 		else
 			return false;
 	}
+	
+	@Override
+	public String toString() {
+		return getName();
+	}
 }
