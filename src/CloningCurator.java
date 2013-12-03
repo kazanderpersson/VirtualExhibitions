@@ -13,19 +13,17 @@ import jade.core.behaviours.SimpleBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
-import jade.domain.FIPANames;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.NotUnderstoodException;
 import jade.domain.FIPAAgentManagement.Property;
 import jade.domain.FIPAAgentManagement.RefuseException;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
-import jade.domain.mobility.CloneAction;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.lang.acl.UnreadableException;
-import jade.proto.AchieveREResponder;
 import jade.proto.SimpleAchieveREResponder;
 import jade.wrapper.ContainerController;
+import jade.wrapper.ControllerException;
 
 /**
  * The Curator will take requests from a Profiler or TourAgent. 
@@ -59,11 +57,21 @@ public class CloningCurator extends Agent {
 	
 	private Artifact boughtArtifact;
 	private int boughtArtifactPrice;
-
+	private String homeContainer;
+	private AID originalCurator;
+	
 	@Override
 	protected void setup() {
 		try {Thread.sleep((int)(Math.random()*500));} catch (InterruptedException e) {} //spread console output
 		//curator interest setup
+		
+		originalCurator = getAID();
+		try {
+			homeContainer = getContainerController().getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
+		
 		int numberOfInterests = 2+((int)(Math.random()*8)); //2-9
 		int i = 0;
 		int randomGenre;
@@ -96,13 +104,41 @@ public class CloningCurator extends Agent {
 				}
 			}
 		});
+		
+		addBehaviour(new OneShotBehaviour() {
+			@Override
+			public void action() {
+				if(myAgent.getName().split("@")[0].equals("curator")) {
+					System.out.println("Waiting for clones to finnish...");
+					boolean done = false;
+					int receivedMessages = 0;
+					while(!done) {
+						MessageTemplate template = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+						ACLMessage doneMessage = blockingReceive(template);
+						if(doneMessage != null) {
+							String content = doneMessage.getContent();
+							String item = content.split("::")[0];
+							int price = Integer.parseInt(content.split("::")[1]);
+							String sender = doneMessage.getSender().getName();
+							
+							if(item.equals("null"))
+								System.out.println(getName() + ": Clone " + sender + " didn't buy anything....");
+							else
+								System.out.println(getName() + ": Clone " + sender + " bought " + item + " at price " + price);
+							receivedMessages++;
+						}
+						done = receivedMessages == 2;
+					}
+				}
+			}
+		});
 	}
 	
 	private void cloneTo(String container, String cloneName) {
 		Runtime rt = Runtime.instance();
 		ProfileImpl profile = new ProfileImpl(false);
 		profile.setParameter(ProfileImpl.CONTAINER_NAME, container);
-		ContainerController controller = rt.createAgentContainer(profile);
+		rt.createAgentContainer(profile);
 		
 		ContainerID destination = new ContainerID();
 		destination.setName(container);
@@ -132,9 +168,30 @@ public class CloningCurator extends Agent {
 					System.out.println(getName() + ": I bought: " + boughtArtifact + " at price: " + boughtArtifactPrice);
 				
 				System.out.println(getName() + ": I should head back home.");
+				ContainerID destination = new ContainerID();
+				destination.setName(homeContainer);
+				doMove(destination);
 			}
 		});
 		addBehaviour(seq);
+	}
+	
+	@Override
+	protected void beforeMove() {
+		super.beforeMove();
+//		System.out.println(getName() + ": Moving home...");
+	}
+	
+	@Override
+	protected void afterMove() {
+		super.afterMove();
+//		System.out.println(getName() + ": I'm home!");
+		
+		ACLMessage doneMessage = new ACLMessage(ACLMessage.INFORM);
+		doneMessage.setSender(getAID());
+		doneMessage.setContent(boughtArtifact + "::" + boughtArtifactPrice);
+		doneMessage.addReceiver(originalCurator);
+		send(doneMessage);
 	}
 	
 	@Override

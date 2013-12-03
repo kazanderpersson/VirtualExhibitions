@@ -9,21 +9,14 @@ import java.util.Vector;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.ContainerID;
-import jade.core.ProfileImpl;
-import jade.core.Runtime;
-import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.FSMBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.SequentialBehaviour;
 import jade.core.behaviours.SimpleBehaviour;
-import jade.core.behaviours.TickerBehaviour;
-import jade.domain.DFService;
-import jade.domain.FIPAException;
 import jade.domain.FIPANames;
-import jade.domain.FIPAAgentManagement.DFAgentDescription;
-import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
-import jade.wrapper.ContainerController;
+import jade.lang.acl.MessageTemplate;
+import jade.wrapper.ControllerException;
 
 /**
  * 	The Auctioneer/MarketAgent will start a Dutch Auction with all available Curators.
@@ -57,12 +50,20 @@ public class CloningAuctioneer extends Agent{
 	
 	private Artifact artifactSold;
 	private int artifactSellPrice;
+	private String homeContainer;
+	private AID originalAuctioneer;
 	
 	@Override
 	protected void setup() {
 		initArtifacts();
 		try {Thread.sleep(1500);} catch (InterruptedException e) {} //let curators do their setup
 		
+		originalAuctioneer = getAID();
+		try {
+			homeContainer = getContainerController().getContainerName();
+		} catch (ControllerException e) {
+			e.printStackTrace();
+		}
 		
 		addBehaviour(new OneShotBehaviour() {
 			@Override
@@ -78,6 +79,33 @@ public class CloningAuctioneer extends Agent{
 			public void action() {
 				if(myAgent.getName().split("@")[0].equals("auctioneer")) {
 					cloneTo(CloningCurator.DA_CONTAINER_2, "auctioneer-clone-2");					
+				}
+			}
+		});
+		
+		addBehaviour(new OneShotBehaviour() {
+			@Override
+			public void action() {
+				if(myAgent.getName().split("@")[0].equals("auctioneer")) {
+					System.out.println("Waiting for clones to finnish...");
+					boolean done = false;
+					int receivedMessages = 0;
+					while(!done) {
+						MessageTemplate template = MessageTemplate.MatchPerformative(ACLMessage.INFORM);
+						ACLMessage doneMessage = blockingReceive(template);
+						if(doneMessage != null) {
+							String content = doneMessage.getContent();
+							String item = content.split("::")[0];
+							int price = Integer.parseInt(content.split("::")[1]);
+							String sender = doneMessage.getSender().getName();
+							if(item.equals("null"))
+								System.out.println(getName() + ": Clone " + sender + " didn't manage to sell.");
+							else
+								System.out.println(getName() + ": Clone " + sender + " sold " + item + " at price " + price);
+							receivedMessages++;
+						}
+						done = receivedMessages == 2;
+					}
 				}
 			}
 		});
@@ -130,9 +158,31 @@ public class CloningAuctioneer extends Agent{
 				}
 				
 				System.out.println("I should move back to the main container..");
+				
+				ContainerID destination = new ContainerID();
+				destination.setName(homeContainer);
+				doMove(destination);
 			}
 		});
 		addBehaviour(seq);
+	}
+	
+	@Override
+	protected void beforeMove() {
+		super.beforeMove();
+//		System.out.println(getName() + ": I'm returning home.");
+	}
+	
+	@Override
+	protected void afterMove() {
+		super.afterMove();
+//		System.out.println(getName() + ": Honey, I'm home!");
+		
+		ACLMessage doneMessage = new ACLMessage(ACLMessage.INFORM);
+		doneMessage.setSender(getAID());
+		doneMessage.setContent(artifactSold + "::" + artifactSellPrice);
+		doneMessage.addReceiver(originalAuctioneer);
+		send(doneMessage);
 	}
 	
 	/**
