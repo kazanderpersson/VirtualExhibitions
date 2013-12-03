@@ -48,10 +48,10 @@ public class CloningAuctioneer extends Agent{
 	
 	public static final String[] genres = {"geology", "animals", "religon", "history", "sport", "graffiti", "pop art", "surrealism", "cubism", "realism", "romanticism", "19th century", "20th century", "21th century"};
 	
-	private Artifact artifactSold;
-	private int artifactSellPrice;
-	private String homeContainer;
-	private AID originalAuctioneer;
+	private Artifact artifactSold;		//	The artifact that is sold in an auction.
+	private int artifactSellPrice;		//	Price of the artifact.
+	private String homeContainer;		//	Default container (where the original auctioneer will stay).
+	private AID originalAuctioneer;		//	The original auctioneer
 	
 	@Override
 	protected void setup() {
@@ -65,6 +65,7 @@ public class CloningAuctioneer extends Agent{
 			e.printStackTrace();
 		}
 		
+		//	Create a clone and move it to Container 1.
 		addBehaviour(new OneShotBehaviour() {
 			@Override
 			public void action() {
@@ -74,6 +75,7 @@ public class CloningAuctioneer extends Agent{
 			}
 		});
 		
+		//	Create another clone and move it to Container 2.
 		addBehaviour(new OneShotBehaviour() {
 			@Override
 			public void action() {
@@ -83,6 +85,7 @@ public class CloningAuctioneer extends Agent{
 			}
 		});
 		
+		//	Wait for the clones to finish, compare results.
 		addBehaviour(new OneShotBehaviour() {
 			@Override
 			public void action() {
@@ -111,6 +114,9 @@ public class CloningAuctioneer extends Agent{
 		});
 	}
 	
+	/**
+	 * 	Clone the Auctioneer to a new container. Give the clone a new name.
+	 */
 	private void cloneTo(String container, String cloneName) {
 		ContainerID destination = new ContainerID();
 		destination.setName(container);
@@ -123,10 +129,14 @@ public class CloningAuctioneer extends Agent{
 		System.out.println(getName() + ": Cloning myself.");
 	}
 	
+	/**
+	 * 	Clone is now in a new container. Start an auction!
+	 */
 	@Override
 	protected void afterClone() {
 		super.afterClone();
-		buyers = getBuyers();
+		
+		buyers = getBuyers();		//No need to use the DF service, we know the name of the Curator clone.
 		receivedProposals = new Vector<>();
 		
 		//Initiate Auction FSM
@@ -173,6 +183,9 @@ public class CloningAuctioneer extends Agent{
 //		System.out.println(getName() + ": I'm returning home.");
 	}
 	
+	/**
+	 * 	Now back in the original container, notify the original Auctioneer about results.
+	 */
 	@Override
 	protected void afterMove() {
 		super.afterMove();
@@ -186,7 +199,7 @@ public class CloningAuctioneer extends Agent{
 	}
 	
 	/**
-	 * @return a list of potential buyers (Curators) from the DF service.
+	 * @return a list of potential buyers (Curator clones). DF Service is not used since it's platform-wide.
 	 */
 	private ArrayList<AID> getBuyers() {
 		/**********/
