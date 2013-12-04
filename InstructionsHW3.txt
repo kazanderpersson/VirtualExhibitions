@@ -1,0 +1,28 @@
+Homework 3 , Distributed Artificial Intelligence and Intelligent Agents (ID2209) 
+2013-12-04
+Karl-Axel Zander, 920208-5594, kazander@kth.se
+Andreas Hallberg, 910816-0251, anhallbe@kth.se 
+
+To run the program:
+java -cp JADE\jade.jar;bin jade.Boot -gui -agents auctioneer:CloningAuctioneer;curator:CloningCurator
+
+PROGRAM DESCRIPTION:
+The program will start an Auctioneer and a Curator, and will only perform one Dutch Auction in separate participant containers.
+
+The Auctioneer:
+	1. Pick an artifact to sell.
+	2. Make 2 clones.
+	3. Move the clones to 2 new containers.
+		4. Clones will perform an Dutch Auction with participants in the container.
+		5. Clones will move back to the original container.
+		6. Clones report results to the "original" Auctioneer.
+	7. Original auctioneer receives the results and prints them to the standard output.
+
+The Curator:
+	1. Initialize interests (utilities).
+	2. Make 2 clones.
+	3. Move clones into the two participant container.
+		4. Clones take part in an auction.
+		5. Clones move back to the original container.
+		6. Clones report the results to the original container.
+	7. Original Curator receives the results and prints them.
